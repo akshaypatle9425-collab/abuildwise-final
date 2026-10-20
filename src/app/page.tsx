@@ -156,7 +156,9 @@ export default function Page(){
         setLiveLabel(`📍 NAGPUR LIVE GPS`);
         fetchData("Nagpur", latitude, longitude);
       }
-    },()=>{ setLiveLabel("GPS Denied"); });  const plotNum = parseInt(plotArea)||2000;
+    },()=>{ setLiveLabel("GPS Denied"); });
+  };
+  const plotNum = parseInt(plotArea)||2000;
   const liveCoverage = getLiveCoverage(geo, plotNum);
   const coverage = manualCoverageAdd!==null ? manualCoverageAdd : (apiData.coverage || liveCoverage);
   const ratePerSqft = apiData.ratePerSqft || getCityRate(geo);
@@ -376,4 +378,3 @@ export default function Page(){
     </div>
   );
 }
-  };
