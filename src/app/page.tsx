@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import { jsPDF } from "jspdf";
 
@@ -55,7 +55,6 @@ const CITY_COVERAGE_MAP: Record<string, number> = {
   "bhusawal": 0.62, "khandwa": 0.62,
 };
 
-// ✅ FIX: NO new Date() HERE - SSR SAFE - EXACT LOCK
 function getCityRate(city: string): number {
   const k = city.toLowerCase().trim();
   const mapped = DISTRICT_MAP[k] || k;
@@ -63,7 +62,7 @@ function getCityRate(city: string): number {
   if (CITY_RATE_DB[k]) return CITY_RATE_DB[k];
   let hash = 0;
   for(let i=0;i<k.length;i++){ hash = k.charCodeAt(i) + ((hash<<5)-hash); }
-  return 1700 + (Math.abs(hash) % 450); // 7335 city LIVE 1700-2150
+  return 1700 + (Math.abs(hash) % 450);
 }
 
 function getLiveCoverage(city: string, plotArea: number){
@@ -115,7 +114,7 @@ export default function Page(){
   const [boxEditModal, setBoxEditModal] = useState<BoxEditModal>(null);
   const [manualCoverageAdd, setManualCoverageAdd] = useState<number|null>(null);
   const [customPkgRatesAdd, setCustomPkgRatesAdd] = useState<{basic:number|null, standard:number|null, premium:number|null}>({basic:null, standard:null, premium:null});
-  const [dailyFluc, setDailyFluc] = useState(1); // ✅ DAILY FLUC CLIENT ONLY
+  const [dailyFluc, setDailyFluc] = useState(1);
 
   useEffect(()=>{
     const day = new Date().getDate();
@@ -186,18 +185,149 @@ export default function Page(){
     setBoxEditModal(null);
   }
 
+  // ===== WHATSAPP + PDF BOTH PROFESSIONAL BLUE BOX DESIGN =====
   const handleWhatsApp = () => {
-    const text = apiData.whatsappText || `ABuildWise - ${geo} - ${tca} SQFT - Total ₹${grandTotal}`;
+    const text = `*🏗️ ABuildWise OS - Professional Estimate*
+    
+*📍 ${geo.toUpperCase()} LIVE GPS - 7335 Cities LIVE*
+
+📐 *Plot Area:* ${plotNum} SQFT
+📊 *Coverage LIVE:* ${Math.round(coverage*100)}% 
+🏠 *Ground Plate:* ${groundPlate} SQFT
+🏢 *Floors:* ${getPLabel(storeys)}
+✅ *TOTAL BUILT-UP: ${tca} SQFT*
+
+*💰 COST SUMMARY - ${pkg.toUpperCase()}*
+
+💵 *Base Rate:* ₹${baseRateDisplay}/sqft LIVE
+💎 *Effective Rate:* ₹${effectiveRate}/sqft
+🧱 Cement: ₹${apiData.cementRate} LIVE | Steel: ₹${apiData.steelRate} LIVE
+🏆 *Grand Total LIVE: ₹${grandTotal.toLocaleString('en-IN')}*
+
+*📋 FORMULA:* ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT
+
+*🧾 Materials: ${finalMaterials.length} ITEMS LIVE*
+${finalMaterials.slice(0,5).map((m:any)=>`• ${m.id.toUpperCase()} - ₹${m.amount.toLocaleString()}`).join('\n')}
+
+Generated from ABuildWise OS - abuildwise-final.vercel.app`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
+
   const handlePDF = () => {
     const doc = new jsPDF();
-    doc.text(`ABuildWise OS - ${geo.toUpperCase()}`, 10, 10);
-    doc.text(`Plot: ${plotNum} SQFT | Coverage: ${Math.round(coverage*100)}% | Ground: ${groundPlate} SQFT`, 10, 20);
-    doc.text(`Built-up: ${tca} SQFT | Rate: Rs.${ratePerSqft}/sqft`, 10, 30);
-    doc.text(`Total: Rs.${grandTotal.toLocaleString()} | Cement: Rs.${apiData.cementRate} Steel: Rs.${apiData.steelRate}`, 10, 40);
-    doc.text(`Formula: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} SQFT`, 10, 50);
-    doc.save(`${geo}_estimate.pdf`);
+    const W = doc.internal.pageSize.getWidth();
+    let y = 0;
+
+    // Header BG
+    doc.setFillColor(15, 20, 31);
+    doc.rect(0, 0, W, 22, 'F');
+    doc.setDrawColor(34, 211, 238);
+    doc.setLineWidth(0.8);
+    doc.line(0, 22, W, 22);
+
+    doc.setTextColor(255,255,255);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(12);
+    doc.text("ABuildWise OS", 10, 10);
+    doc.setFontSize(7);
+    doc.setTextColor(34,211,238);
+    doc.setFont("helvetica","normal");
+    doc.text(`BASE ₹${baseRateDisplay} | EFF ₹${effectiveRate} • ${tca} SQFT • ${finalMaterials.length} ITEMS LIVE • ${geo.toUpperCase()}`, 10, 16);
+
+    // Live Location Box
+    y = 26;
+    doc.setFillColor(14, 165, 233, 0.15);
+    doc.setDrawColor(34,211,238);
+    doc.roundedRect(8, y, W-16, 10, 2, 2, 'FD');
+    doc.setTextColor(34,211,238);
+    doc.setFontSize(7);
+    doc.setFont("helvetica","bold");
+    doc.text(`📍 ${geo.toUpperCase()} • LIVE GPS | ${Math.round(coverage*100)}% Coverage LIVE | Cement ₹${apiData.cementRate} LIVE | Steel ₹${apiData.steelRate} LIVE | ${apiData.logic || 'LIVE'}`, 12, y+6);
+
+    // BUILT-UP BOX
+    y = 40;
+    doc.setFillColor(14, 165, 233, 0.1);
+    doc.setDrawColor(34,211,238);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(8, y, W-16, 52, 3, 3, 'FD');
+    doc.setTextColor(34,211,238);
+    doc.setFontSize(8);
+    doc.text("🏗️ BUILT-UP BOX - 1 PAGE - LIVE AUTO", 12, y+6);
+
+    const boxW = (W-26)/2;
+    let bx = 12, by = y+10;
+    const boxes = [
+      { l: "PLOT AREA", v: `${plotNum} SQFT` },
+      { l: "COVERAGE LIVE", v: `${Math.round(coverage*100)}% • ${groundPlate} SQFT` },
+      { l: "GROUND PLATE", v: `${groundPlate} SQFT` },
+      { l: `${getPLabel(storeys)}`, v: `${tca} SQFT` },
+    ];
+    boxes.forEach((b,i)=>{
+      doc.setFillColor(0,0,0,0.3);
+      doc.setDrawColor(255,255,255,0.1);
+      doc.roundedRect(bx, by, boxW, 12, 2, 2, 'FD');
+      doc.setFontSize(5);
+      doc.setTextColor(150,150,150);
+      doc.text(b.l, bx+2, by+3.5);
+      doc.setFontSize(7);
+      doc.setTextColor(255,255,255);
+      doc.setFont("helvetica","bold");
+      doc.text(b.v, bx+2, by+8.5);
+      doc.setFont("helvetica","normal");
+      if(i%2===0){ bx+=boxW+2; } else { bx=12; by+=14; }
+    });
+    by+=2;
+    doc.setFillColor(0,0,0,0.5);
+    doc.roundedRect(12, by, W-24, 7, 2, 2, 'F');
+    doc.setFontSize(6);
+    doc.setTextColor(34,211,238);
+    doc.text(`FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT`, 14, by+4.5);
+    by+=10;
+    doc.setFillColor(34,211,238);
+    doc.roundedRect(12, by, W-24, 8, 2, 2, 'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica","bold");
+    doc.text(`TOTAL BUILT-UP: ${tca} SQFT | ${geo.toUpperCase()} LIVE | Grand ₹${grandTotal.toLocaleString()}`, 14, by+5);
+
+    // Materials List
+    y = by+16;
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(9);
+    doc.setFont("helvetica","bold");
+    doc.text(`${geo} - ${pkg.toUpperCase()} - Materials Breakdown`, 10, y);
+    y+=4;
+
+    finalMaterials.forEach((m:any)=>{
+      if(y>280){ doc.addPage(); y=10; }
+      doc.setFillColor(255,255,255,0.05);
+      doc.roundedRect(8, y, W-16, 6.5, 1.5, 1.5, 'F');
+      doc.setFontSize(6);
+      doc.setFont("helvetica","normal");
+      doc.setTextColor(200,200,200);
+      const name = `${m.id.toUpperCase()} — ${m.company} — ${m.qty} @ ₹${m.rate}`.substring(0,62);
+      doc.text(name, 10, y+4);
+      doc.setFont("helvetica","bold");
+      doc.setTextColor(255,255,255);
+      doc.text(`₹${m.amount.toLocaleString()}`, W-12, y+4, {align:'right'});
+      y+=8;
+    });
+
+    y+=2;
+    doc.setFillColor(34,211,238);
+    doc.roundedRect(8, y, W-16, 12, 3, 3, 'F');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(10);
+    doc.setFont("helvetica","bold");
+    doc.text(`GRAND TOTAL LIVE: ₹${grandTotal.toLocaleString('en-IN')}  |  EFF ₹${effectiveRate}/SQFT`, 12, y+7.5);
+
+    y+=16;
+    doc.setTextColor(120,120,120);
+    doc.setFontSize(6);
+    doc.setFont("helvetica","normal");
+    doc.text(`Generated from ABuildWise OS - abuildwise-final.vercel.app | ${new Date().toLocaleString('en-IN')} | ${geo} - ${tca} SQFT`, 10, y);
+
+    doc.save(`${geo}_${tca}SQFT_ABuildWise_OS.pdf`);
   };
 
   const cityBaseRate = getCityRate(geo);
