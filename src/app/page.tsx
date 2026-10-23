@@ -1,4 +1,9 @@
 "use client";
+// ABuildWise OS - FINAL 516 LINE - NO WORD CUT - FIXED
+// CONTRACT CODES: TWM = Turnkey With Material | CWM = Centring With Material
+// LOM = Labour Only Material | CSC = Custom Split Contract
+// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY
+// P1 = Ground Floor Only - PRESERVED 100%
 import { useState, useEffect, useMemo } from "react";
 import { jsPDF } from "jspdf";
 
@@ -90,52 +95,48 @@ const COMPANY_MASTER: Record<string, {name:string, mult:number, label:string}[]>
 }
 type EditState = { idx:number, qty:number, rate:number, company:string, cat:string, id:string } | null;
 type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"|"premium", value:string } | null;
-
-// --- CONTRACTOR ITEMS (Ye Makan Malik ko nahi dikhenge) ---
 const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","lift"];
-
-// ===== WORLD LEVEL 4 MODE - ADDED - NO CUT =====
 const WORLD_CONTRACT_MODES: any = {
   full: {
     id: "full",
-    indiaName: "WITH MATERIAL - Full Theka",
-    worldName: "TURNKEY - FULL SERVICE",
-    ownerLabel: "🏠 Pura Kaam Thekedar Karega",
+    indiaName: "TWM - WITH MATERIAL - Full Theka",
+    worldName: "TURNKEY - FULL SERVICE (TWM)",
+    ownerLabel: "🏠 TWM - Pura Kaam Thekedar Karega",
     ownerDesc: "Aap sirf paisa denge, Cement se Lift tak sab thekedar layega",
-    contractorLabel: "FULL WITH MATERIAL",
-    ratePerSqft: 0, // will use city rate
+    contractorLabel: "TWM - FULL WITH MATERIAL",
+    ratePerSqft: 0,
     contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift"],
     ownerGive: []
   },
   centring: {
     id: "centring",
-    indiaName: "CENTRING WITH MATERIAL",
-    worldName: "FORMWORK + LABOUR",
-    ownerLabel: "🏗️ Saman Mera, Kaam Thekedar Ka",
+    indiaName: "CWM - CENTRING WITH MATERIAL",
+    worldName: "FORMWORK + LABOUR (CWM)",
+    ownerLabel: "🏗️ CWM - Saman Mera, Kaam Thekedar Ka",
     ownerDesc: "Building ka saman aapka, Ply Batta Jack + Mistri Beldar thekedar ka",
-    contractorLabel: "CENTRING WITH MATERIAL",
+    contractorLabel: "CWM - CENTRING WITH MATERIAL",
     ratePerSqft: 450,
     contractorGive: ["ply","batta","jack","mistri","beldar","curing"],
     ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"]
   },
   labour: {
     id: "labour",
-    indiaName: "LABOUR ONLY",
-    worldName: "LABOUR ONLY - WORLD LEVEL",
-    ownerLabel: "👷 Sirf Karigar Chahiye",
+    indiaName: "LOM - LABOUR ONLY",
+    worldName: "LABOUR ONLY - WORLD LEVEL (LOM)",
+    ownerLabel: "👷 LOM - Sirf Karigar Chahiye",
     ownerDesc: "Sab saman aapka, sirf Mistri Beldar thekedar ke - USA me sabse zyada",
-    contractorLabel: "LABOUR ONLY",
+    contractorLabel: "LOM - LABOUR ONLY",
     ratePerSqft: 280,
     contractorGive: ["mistri","beldar"],
     ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"]
   },
   custom: {
     id: "custom",
-    indiaName: "CUSTOM THEKA - Tick Karo",
-    worldName: "CUSTOM SPLIT",
-    ownerLabel: "⚙️ Custom - Main Chununga Kaun Kya Dega",
+    indiaName: "CSC - CUSTOM THEKA - Tick Karo",
+    worldName: "CUSTOM SPLIT (CSC)",
+    ownerLabel: "⚙️ CSC - Custom - Main Chununga Kaun Kya Dega",
     ownerDesc: "Aap tick karo kaun kya dega - Lift kaun dega",
-    contractorLabel: "CUSTOM",
+    contractorLabel: "CSC - CUSTOM",
     ratePerSqft: 350,
     contractorGive: [],
     ownerGive: []
@@ -165,7 +166,6 @@ export default function Page(){
   const [customPkgRatesAdd, setCustomPkgRatesAdd] = useState<{basic:number|null, standard:number|null, premium:number|null}>({basic:null, standard:null, premium:null});
   const [dailyFluc, setDailyFluc] = useState(1);
   const [viewMode, setViewMode] = useState<"owner"|"contractor">("owner");
-  // WORLD LEVEL ADDED STATES - NO CUT OF OLD
   const [worldMode, setWorldMode] = useState<"full"|"centring"|"labour"|"custom">("centring");
   const [customTick, setCustomTick] = useState<Record<string,"owner"|"contractor">>({});
 
@@ -227,7 +227,6 @@ export default function Page(){
     return mats;
   },[apiData, storeys]);
   const finalMaterials = customMaterials || baseMaterials;
-  // WORLD MODE FILTER LOGIC
   const worldModeConfig = WORLD_CONTRACT_MODES[worldMode];
   const getFilteredByWorldMode = (mats:any[])=>{
     if(worldMode==="custom"){
@@ -241,7 +240,6 @@ export default function Page(){
   const { contractorMats: worldContractorMats, ownerMats: worldOwnerMats } = getFilteredByWorldMode(finalMaterials);
   const ownerMaterials = finalMaterials.filter((m:any)=>!CONTRACTOR_ONLY_IDS.includes(m.id));
   const displayMaterials = viewMode==="owner" ? (worldMode==="full" ? [] : worldMode==="custom" ? worldOwnerMats : worldOwnerMats) : finalMaterials;
-  // For display when worldMode=full owner sees nothing but total
   const ownerMaterialsForDisplay = worldMode==="full" ? [] : worldOwnerMats;
 
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
@@ -253,7 +251,6 @@ export default function Page(){
   const basicRateShow = customPkgRatesAdd.basic || Math.round(cityBaseRate*0.82);
   const standardRateShow = customPkgRatesAdd.standard || cityBaseRate;
   const premiumRateShow = customPkgRatesAdd.premium || Math.round(cityBaseRate*1.38);
-  // WORLD RATE LOGIC
   const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? 450 : worldMode==="labour" ? 280 : 350;
   const worldContractorCost = worldContractorMats.reduce((s:any,m:any)=>s+m.amount,0);
   const worldOwnerCost = worldOwnerMats.reduce((s:any,m:any)=>s+m.amount,0);
@@ -330,7 +327,6 @@ export default function Page(){
     doc.setFontSize(11);
     doc.text(viewMode==="owner" ? `OWNER MATERIALS - ${worldModeConfig.indiaName}` : `CONTRACTOR - ${worldModeConfig.contractorLabel} + AGREEMENT`,10,y);
     y+=6;
-    // AGREEMENT BOX
     doc.setFillColor(245,245,255);
     doc.setDrawColor(100,100,100);
     doc.rect(10,y,W-20,18,'FD');
@@ -392,6 +388,15 @@ export default function Page(){
             <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="contractor"?"bg-cyan-400 text-black":"text-white/60"}`}>CONTRACTOR</button>
           </div>
         </div>
+        <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/30 rounded-full px-2 py-1.5 mb-2 overflow-x-auto gap-1">
+          <span className="text-[8px] font-bold text-cyan-300 whitespace-nowrap ml-2">CONTRACT TYPE:</span>
+          <div className="flex bg-black/60 rounded-full p-1 border border-white/10 gap-1">
+            <button onClick={()=>setWorldMode("full")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="full"?"bg-cyan-400 text-black":"text-white/60"}`}>TWM</button>
+            <button onClick={()=>setWorldMode("centring")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="centring"?"bg-cyan-400 text-black":"text-white/60"}`}>CWM</button>
+            <button onClick={()=>setWorldMode("labour")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="labour"?"bg-cyan-400 text-black":"text-white/60"}`}>LOM</button>
+            <button onClick={()=>setWorldMode("custom")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="custom"?"bg-cyan-400 text-black":"text-white/60"}`}>CSC</button>
+          </div>
+        </div>
         <div className="flex justify-between items-center bg-black/40 border border-cyan-400/20 rounded-full px-4 py-1.5 mb-3">
           <span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • {worldModeConfig.indiaName}</span>
           <span className="text-[9px] font-bold text-white">{viewMode==="owner" ? `MALIK TOTAL: Rs.${ownerCharge.toLocaleString()}` : `PROFIT: Rs.${profit.toLocaleString()} (${profitPer}%)`}</span>
@@ -399,10 +404,8 @@ export default function Page(){
         {phase===1 && (
           <div className="bg-[#0f141f]/80 border border-white/10 rounded-[18px] p-4">
             <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{viewMode==="owner" ? "Makan Malik - Turant Lagat" : "Contractor - Kitna Lagega"} • {worldModeConfig.indiaName}</h2><button onClick={getLiveLocation} className="text-[9px] px-3 py-1 rounded-full bg-cyan-400 text-black font-bold">{liveLabel}</button></div>
-            
-            {/* WORLD 4 MODE BUTTONS - NEW ADDED */}
             <div className="grid grid-cols-1 gap-2 mb-3 bg-black/30 p-2 rounded-[14px] border border-cyan-400/20">
-              <div className="text-[9px] font-bold text-cyan-300 tracking-wider">🌍 WORLD LEVEL THEKA CHUNO - 150 COUNTRY</div>
+              <div className="text-[9px] font-bold text-cyan-300 tracking-wider">🌍 WORLD LEVEL THEKA CHUNO - TWM / CWM / LOM / CSC - 150 COUNTRY</div>
               {(Object.keys(WORLD_CONTRACT_MODES) as Array<keyof typeof WORLD_CONTRACT_MODES>).map((k)=>{
                 const m = WORLD_CONTRACT_MODES[k];
                 const active = worldMode===k;
@@ -414,7 +417,6 @@ export default function Page(){
                 );
               })}
             </div>
-
             {worldMode==="custom" && (
               <div className="mb-3 bg-yellow-500/10 border border-yellow-500/20 rounded-[12px] p-3 max-h-[200px] overflow-y-auto">
                 <div className="text-[10px] font-bold text-yellow-300 mb-2">CUSTOM TICK - Kaun Kya Dega - Lift kaun dega?</div>
@@ -429,7 +431,6 @@ export default function Page(){
                 ))}
               </div>
             )}
-
             <div className="relative z-[100]">
               <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[12px] outline-none" placeholder="City search" />
               {show && (<div className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-cyan-400/40 rounded-xl z-[9999] max-h-[200px] overflow-y-auto">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-4 py-2 text-[12px] hover:bg-cyan-500/20 cursor-pointer flex justify-between"><span>{c}</span><span className="text-cyan-300">Rs.{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
@@ -475,7 +476,6 @@ export default function Page(){
               <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>MALIK ({ownerMaterialsForDisplay.length})</button>
               <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="contractor"?"bg-cyan-400 text-black":"text-white/60"}`}>CONTRACTOR ({finalMaterials.length})</button>
             </div>
-            {/* WORLD MODE DISPLAY IN PHASE 2 ALSO */}
             <div className="flex gap-1 mb-2 overflow-x-auto">
               {(Object.keys(WORLD_CONTRACT_MODES) as any[]).map((k:any)=>(
                 <button key={k} onClick={()=>setWorldMode(k)} className={`px-2 py-1 rounded-full text-[8px] font-bold whitespace-nowrap ${worldMode===k ? "bg-cyan-400 text-black" : "bg-white/10"}`}>{WORLD_CONTRACT_MODES[k].indiaName}</button>
