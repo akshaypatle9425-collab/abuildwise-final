@@ -83,8 +83,8 @@ const COMPANY_MASTER: Record<string, {name:string, mult:number, label:string}[]>
   railing: [{name:"Jindal SS304", mult:1, label:"LIVE"}, {name:"Jindal SS202", mult:0.88, label:"Budget -12%"}, {name:"MS Railing", mult:0.75, label:"MS -25%"}, {name:"Glass Railing", mult:1.2, label:"Premium +20%"}],
   pop: [{name:"Gyproc POP", mult:1, label:"LIVE"}, {name:"Armstrong Ceiling", mult:1.15, label:"Premium"}, {name:"Anutone", mult:1.08, label:"+8%"}, {name:"Local POP", mult:0.88, label:"Budget"}],
   sanitary: [{name:"Cera", mult:1, label:"LIVE"}, {name:"Hindware", mult:1.05, label:"+5%"}, {name:"Jaquar", mult:1.18, label:"Premium +18%"}, {name:"Kohler", mult:1.25, label:"Luxury +25%"}, {name:"Parryware", mult:0.95, label:"-5%"}],
-  mistri: [{name:"Mistri Standard", mult:1, label:"LIVE ₹750"}, {name:"Premium Mistri", mult:1.15, label:"Expert +15%"}, {name:"Thekedar Team", mult:1.1, label:"Contract"}, {name:"Local Mistri", mult:0.9, label:"Budget"}],
-  beldar: [{name:"Beldar Standard", mult:1, label:"LIVE ₹500"}, {name:"Skilled Beldar", mult:1.1, label:"+10%"}, {name:"Local Beldar", mult:0.92, label:"Budget"}, {name:"Helper Beldar", mult:0.85, label:"-15%"}],
+  mistri: [{name:"Mistri Standard", mult:1, label:"LIVE Rs.750"}, {name:"Premium Mistri", mult:1.15, label:"Expert +15%"}, {name:"Thekedar Team", mult:1.1, label:"Contract"}, {name:"Local Mistri", mult:0.9, label:"Budget"}],
+  beldar: [{name:"Beldar Standard", mult:1, label:"LIVE Rs.500"}, {name:"Skilled Beldar", mult:1.1, label:"+10%"}, {name:"Local Beldar", mult:0.92, label:"Budget"}, {name:"Helper Beldar", mult:0.85, label:"-15%"}],
   curing: [{name:"Local Curing", mult:1, label:"LIVE"}, {name:"Chemical Curing", mult:1.25, label:"Fast +25%"}, {name:"Pond Curing", mult:0.95, label:"Std"}, {name:"Spray Curing", mult:1.1, label:"+10%"}],
   lift: [{name:"OTIS", mult:1, label:"LIVE"}, {name:"KONE", mult:1.1, label:"Premium +10%"}, {name:"SCHINDLER", mult:1.15, label:"Luxury +15%"}, {name:"JOHNSON", mult:1.05, label:"+5%"}, {name:"Budget Lift", mult:0.92, label:"Budget"}],
 }
@@ -92,7 +92,7 @@ type EditState = { idx:number, qty:number, rate:number, company:string, cat:stri
 type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"|"premium", value:string } | null;
 export default function Page(){
   const [geo,setGeo]=useState("Nagpur");
-  const [liveLabel,setLiveLabel]=useState("📍 CURRENT LOCATION");
+  const [liveLabel,setLiveLabel]=useState("CURRENT LOCATION");
   const [show,setShow]=useState(false);
   const [plotArea,setPlotArea]=useState("2000");
   const [storeys,setStoreys]=useState("1");
@@ -149,11 +149,11 @@ export default function Page(){
         const d = await rev.json();
         const city = d.address?.city || d.address?.town || d.address?.village || "Nagpur";
         setGeo(city);
-        setLiveLabel(`📍 ${city.toUpperCase()} LIVE GPS`);
+        setLiveLabel(`${city.toUpperCase()} LIVE GPS`);
         fetchData(city, latitude, longitude);
       }
       catch{
-        setLiveLabel(`📍 NAGPUR LIVE GPS`);
+        setLiveLabel(`NAGPUR LIVE GPS`);
         fetchData("Nagpur", latitude, longitude);
       }
     },()=>{ setLiveLabel("GPS Denied"); });
@@ -178,7 +178,7 @@ export default function Page(){
   const applyEdit = () => {
     if(!edit) return;
     const updated = [...finalMaterials];
-    updated[edit.idx] = {...updated[edit.idx], qty: edit.qty, rate: edit.rate, company: edit.company, amount: Math.round(edit.qty * edit.rate), name: `${updated[edit.idx].id.toUpperCase()} — ${edit.company}`};
+    updated[edit.idx] = {...updated[edit.idx], qty: edit.qty, rate: edit.rate, company: edit.company, amount: Math.round(edit.qty * edit.rate), name: `${updated[edit.idx].id.toUpperCase()} - ${edit.company}`};
     const newMatTotal = updated.reduce((s:any,i:any)=>s+i.amount,0);
     const newSub = newMatTotal + (apiData.finishing||0);
     const newGrand = Math.round(newSub * 1.05);
@@ -199,7 +199,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = `*🏗️ ABuildWise OS* 📍 ${geo.toUpperCase()} Plot: ${plotNum} Coverage: ${Math.round(coverage*100)}% = ${groundPlate} Total: ${tca} Grand: ₹${grandTotal.toLocaleString()}`;
+    const text = `ABuildWise OS - ${geo.toUpperCase()} Plot: ${plotNum} Coverage: ${Math.round(coverage*100)}% = ${groundPlate} Total: ${tca} Grand: Rs.${grandTotal.toLocaleString()}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const handlePDF = () => {
@@ -216,13 +216,13 @@ export default function Page(){
     doc.text("ABuildWise OS",10,10);
     doc.setFontSize(7);
     doc.setTextColor(34,211,238);
-    doc.text(`BASE ₹${baseRateDisplay} | EFF ₹${effectiveRate} • ${tca} SQFT • ${geo.toUpperCase()}`,10,16);
+    doc.text(`BASE Rs.${baseRateDisplay} | EFF Rs.${effectiveRate} - ${tca} SQFT - ${geo.toUpperCase()}`,10,16);
     doc.setFillColor(14,165,233,0.15);
     doc.setDrawColor(34,211,238);
     doc.roundedRect(8,y,W-16,10,2,2,'FD');
     doc.setTextColor(34,211,238);
     doc.setFontSize(7);
-    doc.text(`📍 ${geo.toUpperCase()} LIVE GPS | ${Math.round(coverage*100)}% Coverage | Cement ₹${apiData.cementRate} | Steel ₹${apiData.steelRate}`,12,y+6);
+    doc.text(`${geo.toUpperCase()} LIVE GPS | ${Math.round(coverage*100)}% Coverage | Cement Rs.${apiData.cementRate} | Steel Rs.${apiData.steelRate}`,12,y+6);
     y=40;
     doc.setFillColor(15,39,78);
     doc.setDrawColor(0,229,255);
@@ -234,7 +234,7 @@ export default function Page(){
     doc.text("BUILT-UP BOX - 1 PAGE",14,y+6.5);
     const boxW=(W-26)/2;
     let bx=12, by=y+12;
-    const boxes=[{l:"PLOT AREA",v:`${plotNum} SQFT`},{l:"COVERAGE LIVE",v:`${Math.round(coverage*100)}% • ${groundPlate} SQFT`},{l:"GROUND PLATE",v:`${groundPlate} SQFT`},{l:getPLabel(storeys),v:`${tca} SQFT`}];
+    const boxes=[{l:"PLOT AREA",v:`${plotNum} SQFT`},{l:"COVERAGE LIVE",v:`${Math.round(coverage*100)}% - ${groundPlate} SQFT`},{l:"GROUND PLATE",v:`${groundPlate} SQFT`},{l:getPLabel(storeys),v:`${tca} SQFT`}];
     boxes.forEach((b,i)=>{
       doc.setFillColor(10,26,51);
       doc.roundedRect(bx,by,boxW,13,2.5,2.5,'FD');
@@ -283,9 +283,9 @@ export default function Page(){
       doc.setFontSize(9);
       doc.setFont("helvetica","bold");
       doc.setTextColor(c.label==="STANDARD LIVE"?0:255);
-      doc.text(`₹${c.rate}/sqft`,cx+3,y+9);
+      doc.text(`Rs.${c.rate}/sqft`,cx+3,y+9);
       doc.setFontSize(6);
-      doc.text(`Total: ₹${(c.total/100000).toFixed(2)} Lakh`,cx+3,y+13);
+      doc.text(`Total: Rs.${(c.total/100000).toFixed(2)} Lakh`,cx+3,y+13);
     });
     y+=22;
     doc.setTextColor(255,255,255);
@@ -298,10 +298,10 @@ export default function Page(){
       doc.roundedRect(8,y,W-16,6.5,1.5,1.5,'F');
       doc.setFontSize(6);
       doc.setTextColor(200,200,200);
-      doc.text(`${m.id.toUpperCase()} — ${m.company} — ${m.qty} @ ₹${m.rate}`.substring(0,62),10,y+4);
+      doc.text(`${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`.substring(0,62),10,y+4);
       doc.setFont("helvetica","bold");
       doc.setTextColor(255,255,255);
-      doc.text(`₹${m.amount.toLocaleString()}`,W-12,y+4,{align:'right'});
+      doc.text(`Rs.${m.amount.toLocaleString()}`,W-12,y+4,{align:'right'});
       y+=8;
     });
     y+=2;
@@ -309,7 +309,7 @@ export default function Page(){
     doc.roundedRect(8,y,W-16,12,3,3,'F');
     doc.setTextColor(0,0,0);
     doc.setFontSize(10);
-    doc.text(`GRAND TOTAL LIVE: ₹${grandTotal.toLocaleString('en-IN')} | EFF ₹${effectiveRate}/SQFT`,12,y+7.5);
+    doc.text(`GRAND TOTAL LIVE: Rs.${grandTotal.toLocaleString('en-IN')} | EFF Rs.${effectiveRate}/SQFT`,12,y+7.5);
     doc.save(`${geo}_${tca}SQFT_ABuildWise_OS.pdf`);
   };
   const cityBaseRate = getCityRate(geo);
