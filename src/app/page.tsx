@@ -172,7 +172,7 @@ export default function Page(){
   const finalMaterials = customMaterials || baseMaterials;
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
-  const displayTotal = `₹${grandTotal.toLocaleString("en-IN")}`;
+  const displayTotal = `Rs.${grandTotal.toLocaleString("en-IN")}`;
   const effectiveRate = apiData.effectiveRatePerSqft || Math.round(grandTotal / (tca || 1));
   const baseRateDisplay = apiData.baseRatePerSqft || getCityRate(geo);
   const applyEdit = () => {
@@ -205,111 +205,124 @@ export default function Page(){
   const handlePDF = () => {
     const doc = new jsPDF();
     const W = doc.internal.pageSize.getWidth();
-    let y = 26;
-    doc.setFillColor(15, 20, 31);
-    doc.rect(0,0,W,22,'F');
-    doc.setDrawColor(34,211,238);
-    doc.line(0,22,W,22);
+    const H = doc.internal.pageSize.getHeight();
+    let y = 0;
+
+    // --- PAGE BG WHITE ---
+    doc.setFillColor(255,255,255);
+    doc.rect(0,0,W,H,'F');
+
+    // --- HEADER DARK ---
+    y=0;
+    doc.setFillColor(10,15,30);
+    doc.rect(0,0,W,20,'F');
     doc.setTextColor(255,255,255);
     doc.setFont("helvetica","bold");
-    doc.setFontSize(12);
-    doc.text("ABuildWise OS",10,10);
-    doc.setFontSize(7);
-    doc.setTextColor(34,211,238);
-    doc.text(`BASE Rs.${baseRateDisplay} | EFF Rs.${effectiveRate} - ${tca} SQFT - ${geo.toUpperCase()}`,10,16);
-    doc.setFillColor(14,165,233,0.15);
-    doc.setDrawColor(34,211,238);
-    doc.roundedRect(8,y,W-16,10,2,2,'FD');
-    doc.setTextColor(34,211,238);
-    doc.setFontSize(7);
-    doc.text(`${geo.toUpperCase()} LIVE GPS | ${Math.round(coverage*100)}% Coverage | Cement Rs.${apiData.cementRate} | Steel Rs.${apiData.steelRate}`,12,y+6);
-    y=40;
-    doc.setFillColor(15,39,78);
-    doc.setDrawColor(0,229,255);
-    doc.roundedRect(8,y,W-16,52,4,4,'FD');
-    doc.setFillColor(0,229,255);
-    doc.roundedRect(12,y+2,48,7,2,2,'F');
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(7);
-    doc.text("BUILT-UP BOX - 1 PAGE",14,y+6.5);
-    const boxW=(W-26)/2;
-    let bx=12, by=y+12;
-    const boxes=[{l:"PLOT AREA",v:`${plotNum} SQFT`},{l:"COVERAGE LIVE",v:`${Math.round(coverage*100)}% - ${groundPlate} SQFT`},{l:"GROUND PLATE",v:`${groundPlate} SQFT`},{l:getPLabel(storeys),v:`${tca} SQFT`}];
-    boxes.forEach((b,i)=>{
-      doc.setFillColor(10,26,51);
-      doc.roundedRect(bx,by,boxW,13,2.5,2.5,'FD');
-      doc.setFontSize(5);
-      doc.setTextColor(140,160,180);
-      doc.text(b.l,bx+2.5,by+3.5);
-      doc.setFontSize(7);
-      doc.setTextColor(255,255,255);
-      doc.setFont("helvetica","bold");
-      doc.text(b.v,bx+2.5,by+8);
-      if(i%2===0){bx+=boxW+2;}else{bx=12;by+=15;}
-    });
-    by+=2;
-    doc.setFillColor(8,20,40);
-    doc.roundedRect(12,by,W-24,7,2,2,'F');
-    doc.setFontSize(5.5);
-    doc.setTextColor(140,160,180);
-    doc.text("BUILT-UP FORMULA",14,by+4.5);
+    doc.setFontSize(13);
+    doc.text("ABuildWise OS - BUILD ESTIMATE", 10, 12);
+    doc.setFontSize(8);
+    doc.setFont("helvetica","normal");
     doc.setTextColor(0,229,255);
-    doc.text(`${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT`,W-16,by+4.5,{align:'right'});
-    by+=9;
-    doc.setFillColor(0,229,255);
-    doc.roundedRect(12,by,W-42,8,4,4,'F');
-    doc.setFillColor(17,42,74);
-    doc.roundedRect(W-28,by,16,8,4,4,'F');
+    doc.text(`${geo.toUpperCase()} LIVE | BASE Rs.${baseRateDisplay} | EFF Rs.${effectiveRate} | ${tca} SQFT | Cement Rs.${apiData.cementRate} | Steel Rs.${apiData.steelRate}`, 10, 17);
+
+    y=24;
+    // --- BUILT-UP BOX HIGH CONTRAST ---
+    doc.setFillColor(240,245,255);
+    doc.setDrawColor(0,0,0);
+    doc.rect(10,y,W-20,32,'FD');
     doc.setTextColor(0,0,0);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(9);
+    doc.text(`PLOT: ${plotNum} SQFT | COVERAGE: ${Math.round(coverage*100)}% = ${groundPlate} SQFT | GROUND: ${groundPlate} | TOTAL: ${tca} SQFT - ${getPLabel(storeys)}`, 12, y+6);
     doc.setFontSize(7);
-    doc.text(`TOTAL BUILT-UP: ${tca} SQFT`,14,by+5.2);
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(5.5);
-    doc.text(`${geo.toUpperCase()} LIVE`,W-26,by+5);
-    y=by+14;
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(9);
-    doc.text("TOTAL COST ESTIMATE - LIVE",10,y);
-    y+=3;
-    const costBoxW=(W-20)/3;
-    const costs=[{label:"BASIC",rate:basicRateShow,total:Math.round(groundPlate*basicRateShow)},{label:"STANDARD LIVE",rate:standardRateShow,total:Math.round(groundPlate*standardRateShow)},{label:"PREMIUM",rate:premiumRateShow,total:Math.round(groundPlate*premiumRateShow)}];
-    costs.forEach((c,i)=>{
-      const cx=8+i*(costBoxW+2);
-      if(c.label==="STANDARD LIVE"){doc.setFillColor(0,229,255);}else{doc.setFillColor(17,42,74);}
-      doc.roundedRect(cx,y,costBoxW,16,3,3,'F');
-      doc.setFontSize(6);
-      doc.setTextColor(c.label==="STANDARD LIVE"?0:200);
-      doc.text(c.label,cx+3,y+4);
-      doc.setFontSize(9);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(c.label==="STANDARD LIVE"?0:255);
-      doc.text(`Rs.${c.rate}/sqft`,cx+3,y+9);
-      doc.setFontSize(6);
-      doc.text(`Total: Rs.${(c.total/100000).toFixed(2)} Lakh`,cx+3,y+13);
-    });
-    y+=22;
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(9);
-    doc.text(`${geo} - ${pkg.toUpperCase()} - Materials`,10,y);
-    y+=4;
-    finalMaterials.forEach((m:any)=>{
-      if(y>270){doc.addPage(); y=10;}
-      doc.setFillColor(255,255,255,0.05);
-      doc.roundedRect(8,y,W-16,6.5,1.5,1.5,'F');
-      doc.setFontSize(6);
-      doc.setTextColor(200,200,200);
-      doc.text(`${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`.substring(0,62),10,y+4);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(255,255,255);
-      doc.text(`Rs.${m.amount.toLocaleString()}`,W-12,y+4,{align:'right'});
-      y+=8;
-    });
-    y+=2;
-    doc.setFillColor(34,211,238);
-    doc.roundedRect(8,y,W-16,12,3,3,'F');
+    doc.setFont("helvetica","normal");
+    doc.text(`BUILT-UP FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT`, 12, y+12);
+    doc.setFillColor(0,229,255);
+    doc.rect(10,y+16,W-20,10,'F');
     doc.setTextColor(0,0,0);
+    doc.setFont("helvetica","bold");
     doc.setFontSize(10);
-    doc.text(`GRAND TOTAL LIVE: Rs.${grandTotal.toLocaleString('en-IN')} | EFF Rs.${effectiveRate}/SQFT`,12,y+7.5);
+    doc.text(`TOTAL BUILT-UP: ${tca} SQFT | ${geo.toUpperCase()} LIVE`, 12, y+22.5);
+    
+    y+=40;
+    // --- PACKAGE COST ---
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(11);
+    doc.text("TOTAL COST ESTIMATE - LIVE",10,y);
+    y+=4;
+    const costBoxW=(W-26)/3;
+    const costs=[
+      {label:"BASIC",rate:basicRateShow,total:Math.round(tca*basicRateShow)},
+      {label:"STANDARD LIVE",rate:standardRateShow,total:Math.round(tca*standardRateShow)},
+      {label:"PREMIUM",rate:premiumRateShow,total:Math.round(tca*premiumRateShow)}
+    ];
+    costs.forEach((c,i)=>{
+      const cx=10+i*(costBoxW+3);
+      if(c.label==="STANDARD LIVE") doc.setFillColor(0,229,255);
+      else doc.setFillColor(230,230,230);
+      doc.setDrawColor(0,0,0);
+      doc.rect(cx,y,costBoxW,18,'FD');
+      doc.setTextColor(0,0,0);
+      doc.setFontSize(7);
+      doc.setFont("helvetica","bold");
+      doc.text(c.label,cx+3,y+5);
+      doc.setFontSize(10);
+      doc.text(`Rs.${c.rate}/sqft`,cx+3,y+11);
+      doc.setFontSize(7);
+      doc.setFont("helvetica","normal");
+      doc.text(`Total: Rs.${(c.total/100000).toFixed(2)} Lakh`,cx+3,y+15);
+    });
+    y+=26;
+
+    // --- MATERIALS HEADER ---
+    doc.setFillColor(10,15,30);
+    doc.rect(10,y,W-20,9,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica","bold");
+    doc.text(`${geo.toUpperCase()} - ${pkg.toUpperCase()} - MATERIALS LIST - HIGH VISIBILITY`,12,y+6);
+    y+=11;
+
+    // Table Head
+    doc.setFillColor(0,0,0);
+    doc.rect(10,y,W-20,7,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(8);
+    doc.text("ITEM - COMPANY - QTY @ RATE",12,y+4.8);
+    doc.text("AMOUNT",W-12,y+4.8,{align:'right'});
+    y+=8;
+
+    // --- MATERIALS - BLACK ON WHITE ---
+    finalMaterials.forEach((m:any, idx:number)=>{
+      if(y>275){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=10; }
+      // HIGH CONTRAST: white / light grey bg + BLACK text + border
+      if(idx % 2 === 0) doc.setFillColor(255,255,255);
+      else doc.setFillColor(235,240,250);
+      doc.setDrawColor(150,150,150);
+      doc.rect(10,y,W-20,9,'FD');
+      
+      doc.setTextColor(0,0,0); // BLACK
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(9);
+      const leftText = `${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`;
+      doc.text(leftText.substring(0,48),12,y+5.8);
+      
+      doc.setFont("helvetica","bold");
+      doc.text(`Rs.${m.amount.toLocaleString('en-IN')}`,W-12,y+5.8,{align:'right'});
+      y+=10;
+    });
+
+    y+=4;
+    if(y>270){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=15; }
+    // --- GRAND TOTAL ---
+    doc.setFillColor(0,229,255);
+    doc.setDrawColor(0,0,0);
+    doc.rect(10,y,W-20,14,'FD');
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(12);
+    doc.setFont("helvetica","bold");
+    doc.text(`GRAND TOTAL LIVE: Rs.${grandTotal.toLocaleString('en-IN')} | EFF Rs.${effectiveRate}/SQFT`,12,y+8.5);
+
     doc.save(`${geo}_${tca}SQFT_ABuildWise_OS.pdf`);
   };
   const cityBaseRate = getCityRate(geo);
@@ -321,28 +334,28 @@ export default function Page(){
       <div className="w-full max-w-[720px]">
         <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/20 rounded-full px-4 py-2.5 mb-4">
           <span className="font-bold text-[13px]">ABuildWise OS</span>
-          <span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300">BASE ₹{baseRateDisplay} | EFF ₹{effectiveRate} • {tca} SQFT</span>
+          <span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT</span>
         </div>
         {phase===1 && (
           <div className="bg-[#0f141f]/80 border border-white/10 rounded-[18px] p-4">
             <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">Project Config • LIVE MARKET RATE</h2><button onClick={getLiveLocation} className="text-[9px] px-3 py-1 rounded-full bg-cyan-400 text-black font-bold">{liveLabel}</button></div>
             <div className="relative z-[100]">
               <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[12px] outline-none" placeholder="City search" />
-              {show && (<div className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-cyan-400/40 rounded-xl z-[9999] max-h-[200px] overflow-y-auto">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-4 py-2 text-[12px] hover:bg-cyan-500/20 cursor-pointer flex justify-between"><span>{c}</span><span className="text-cyan-300">₹{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
+              {show && (<div className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-cyan-400/40 rounded-xl z-[9999] max-h-[200px] overflow-y-auto">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-4 py-2 text-[12px] hover:bg-cyan-500/20 cursor-pointer flex justify-between"><span>{c}</span><span className="text-cyan-300">Rs.{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
-              <select value={cementCompany} onChange={e=>setCementCompany(e.target.value)} className="bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px]"><option value="ultratech">Ultratech ₹{apiData.cementRate} LIVE</option><option value="acc">ACC ₹{Math.round(apiData.cementRate*0.97)} LIVE</option><option value="ambuja">Ambuja ₹{Math.round(apiData.cementRate*0.95)} LIVE</option></select>
-              <select value={steelCompany} onChange={e=>setSteelCompany(e.target.value)} className="bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px]"><option value="kamdhenu_nxt">Kamdhenu ₹{apiData.steelRate} LIVE</option><option value="tata_tiscon">Tata ₹{Math.round(apiData.steelRate*1.16)} LIVE</option></select>
+              <select value={cementCompany} onChange={e=>setCementCompany(e.target.value)} className="bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px]"><option value="ultratech">Ultratech Rs.{apiData.cementRate} LIVE</option><option value="acc">ACC Rs.{Math.round(apiData.cementRate*0.97)} LIVE</option><option value="ambuja">Ambuja Rs.{Math.round(apiData.cementRate*0.95)} LIVE</option></select>
+              <select value={steelCompany} onChange={e=>setSteelCompany(e.target.value)} className="bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px]"><option value="kamdhenu_nxt">Kamdhenu Rs.{apiData.steelRate} LIVE</option><option value="tata_tiscon">Tata Rs.{Math.round(apiData.steelRate*1.16)} LIVE</option></select>
             </div>
             <div className="grid grid-cols-3 gap-2 mt-4">
               {[{id:"basic", label:"BASIC", rate: basicRateShow, desc:"-18% • Low"}, {id:"standard", label:"STANDARD LIVE", rate: standardRateShow, desc:"MARKET"}, {id:"premium", label:"PREMIUM", rate: premiumRateShow, desc:"+38% • High"}].map(p=>(
-                <button key={p.id} onClick={()=>setPkg(p.id)} className={`rounded-[12px] border p-2 text-left ${pkg===p.id?"bg-cyan-400 text-black border-cyan-400 font-bold":"bg-black/40 border-white/10"}`}><div className="text-[10px]">{p.label}</div><div className="text-[13px]">₹{p.rate}</div><div className="text-[8px] opacity-60">{p.desc}</div></button>
+                <button key={p.id} onClick={()=>setPkg(p.id)} className={`rounded-[12px] border p-2 text-left ${pkg===p.id?"bg-cyan-400 text-black border-cyan-400 font-bold":"bg-black/40 border-white/10"}`}><div className="text-[10px]">{p.label}</div><div className="text-[13px]">Rs.{p.rate}</div><div className="text-[8px] opacity-60">{p.desc}</div></button>
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
-              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"basic", value:String(basicRateShow)})} className="bg-white/10 border border-cyan-400/30 rounded-full py-1.5 text-[9px] font-bold">BASIC EDIT ₹{basicRateShow}</button>
-              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"standard", value:String(standardRateShow)})} className="bg-cyan-400/20 border border-cyan-400/50 rounded-full py-1.5 text-[9px] font-bold text-cyan-300">STANDARD EDIT ₹{standardRateShow}</button>
-              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"premium", value:String(premiumRateShow)})} className="bg-white/10 border border-cyan-400/30 rounded-full py-1.5 text-[9px] font-bold">PREMIUM EDIT ₹{premiumRateShow}</button>
+              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"basic", value:String(basicRateShow)})} className="bg-white/10 border border-cyan-400/30 rounded-full py-1.5 text-[9px] font-bold">BASIC EDIT Rs.{basicRateShow}</button>
+              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"standard", value:String(standardRateShow)})} className="bg-cyan-400/20 border border-cyan-400/50 rounded-full py-1.5 text-[9px] font-bold text-cyan-300">STANDARD EDIT Rs.{standardRateShow}</button>
+              <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"premium", value:String(premiumRateShow)})} className="bg-white/10 border border-cyan-400/30 rounded-full py-1.5 text-[9px] font-bold">PREMIUM EDIT Rs.{premiumRateShow}</button>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div><input value={plotArea} onChange={e=>setPlotArea(e.target.value)} placeholder="Plot Area" className="w-full bg-black/60 border border-white/10 rounded-full px-4 py-3 text-[12px]" /><div className="text-[8px] text-cyan-300 mt-1 ml-3">Coverage LIVE: {Math.round(coverage*100)}% • {groundPlate} Ground</div></div>
@@ -359,18 +372,18 @@ export default function Page(){
               <div className="mt-2 bg-black/60 rounded-full px-3 py-2 border border-cyan-400/20 flex justify-between items-center"><span className="text-[9px] opacity-70">BUILT-UP FORMULA</span><span className="text-[10px] font-bold text-cyan-300">{plotNum} x {Math.round(coverage*100)}% = {groundPlate} x {storeys} = {tca} SQFT</span></div>
               <div className="mt-2 flex gap-2"><div className="flex-1 bg-cyan-400 text-black rounded-full py-1.5 text-center font-black text-[11px]">TOTAL BUILT-UP: {tca} SQFT</div><div className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-[9px]">📍 {geo.toUpperCase()} LIVE</div></div>
             </div>
-            <button onClick={()=>setPhase(2)} className="w-full mt-4 mb-6 bg-white text-black font-bold py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(34,211,238,0.5)]">GENERATE — {displayTotal} • BASE ₹{baseRateDisplay} | EFF ₹{effectiveRate} • {tca} SQFT • {finalMaterials.length} ITEMS LIVE</button>
+            <button onClick={()=>setPhase(2)} className="w-full mt-4 mb-6 bg-white text-black font-bold py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(34,211,238,0.5)]">GENERATE — {displayTotal} • BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • {finalMaterials.length} ITEMS LIVE</button>
             <div className="h-24 w-full"></div>
             {boxEditModal && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-cyan-400/50 rounded-[16px] p-4 w-full max-w-[340px]"><h3 className="font-bold text-[12px] mb-1">EDIT {boxEditModal.type.toUpperCase()} - UNLOCKED</h3><input autoFocus type="number" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value:e.target.value})} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-4 py-3 text-[14px] font-bold outline-none" /><div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-cyan-400 text-black font-bold rounded-full py-2.5 text-[11px]">APPLY UNLOCK</button></div></div></div>)}
           </div>
         )}
         {phase===2 && (
           <div className="bg-[#0f141f]/90 border border-cyan-400/30 rounded-[18px] p-4 mb-24">
-            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{geo} • BASE ₹{baseRateDisplay} | EFF ₹{effectiveRate} • {tca} SQFT</h2><button onClick={()=>setPhase(1)} className="text-[10px] px-3 py-1 rounded-full bg-white/10">← BACK</button></div>
-            <div className="max-h-[45vh] overflow-y-auto">{finalMaterials.map((m:any, idx:number)=><div key={m.id} className="flex justify-between bg-white/5 rounded-full px-3 py-2 text-[11px] mb-1"><span className="w-[60%] truncate">{m.name} — {m.qty} @ ₹{m.rate}</span><div className="flex gap-2 items-center"><span className="font-bold">₹{m.amount.toLocaleString()}</span><button onClick={()=>setEdit({idx, qty:m.qty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-cyan-400 text-black px-3 py-1 rounded-full text-[9px] font-bold">EDIT</button></div></div>)}</div>
-            {edit && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-cyan-400/40 rounded-[16px] p-4 w-full max-w-[360px]"><h3 className="font-bold text-[12px] mb-3">EDIT LIVE - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[9px] opacity-60">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-3 py-2 text-[12px]" /></div><div><div className="text-[9px] opacity-60">Company</div><select value={edit.company} onChange={e=>setEdit({...edit, company: e.target.value})} className="w-full bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px] font-bold">{(COMPANY_MASTER[edit.id] || [{name:edit.company, mult:1, label:"LIVE"}]).map((c:any)=>(<option key={c.name} value={c.name}>{c.name} - {c.label}</option>))}</select></div><div><div className="text-[9px] opacity-60">Rate ₹ LIVE</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-3 py-2 text-[12px] font-bold" /></div></div><div className="flex gap-2 mt-4"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-cyan-400 text-black font-bold rounded-full py-2.5 text-[11px]">APPLY LOCK</button></div></div></div>)}
+            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{geo} • BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT</h2><button onClick={()=>setPhase(1)} className="text-[10px] px-3 py-1 rounded-full bg-white/10">← BACK</button></div>
+            <div className="max-h-[45vh] overflow-y-auto">{finalMaterials.map((m:any, idx:number)=><div key={m.id} className="flex justify-between bg-white/5 rounded-full px-3 py-2 text-[11px] mb-1"><span className="w-[60%] truncate">{m.name} — {m.qty} @ Rs.{m.rate}</span><div className="flex gap-2 items-center"><span className="font-bold">Rs.{m.amount.toLocaleString()}</span><button onClick={()=>setEdit({idx, qty:m.qty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-cyan-400 text-black px-3 py-1 rounded-full text-[9px] font-bold">EDIT</button></div></div>)}</div>
+            {edit && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-cyan-400/40 rounded-[16px] p-4 w-full max-w-[360px]"><h3 className="font-bold text-[12px] mb-3">EDIT LIVE - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[9px] opacity-60">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-3 py-2 text-[12px]" /></div><div><div className="text-[9px] opacity-60">Company</div><select value={edit.company} onChange={e=>setEdit({...edit, company: e.target.value})} className="w-full bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px] font-bold">{(COMPANY_MASTER[edit.id] || [{name:edit.company, mult:1, label:"LIVE"}]).map((c:any)=>(<option key={c.name} value={c.name}>{c.name} - {c.label}</option>))}</select></div><div><div className="text-[9px] opacity-60">Rate Rs. LIVE</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-3 py-2 text-[12px] font-bold" /></div></div><div className="flex gap-2 mt-4"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-cyan-400 text-black font-bold rounded-full py-2.5 text-[11px]">APPLY LOCK</button></div></div></div>)}
             <div className="grid grid-cols-2 gap-2 mt-3"><button onClick={handleWhatsApp} className="bg-green-600 text-white font-bold py-2.5 rounded-full text-[11px]">WhatsApp</button><button onClick={handlePDF} className="bg-white text-black font-bold py-2.5 rounded-full text-[11px]">PDF</button></div>
-            <div className="mt-2 text-[11px] bg-black/30 p-3 rounded-xl"><div className="flex justify-between font-bold text-cyan-300"><span>Grand Total LIVE</span><span>₹{grandTotal.toLocaleString()}</span></div><div className="text-[8px] opacity-50 mt-1">BASE ₹{baseRateDisplay} | EFF ₹{effectiveRate} | Cement ₹{apiData.cementRate} LIVE | Steel ₹{apiData.steelRate} LIVE</div></div>
+            <div className="mt-2 text-[11px] bg-black/30 p-3 rounded-xl"><div className="flex justify-between font-bold text-cyan-300"><span>Grand Total LIVE</span><span>Rs.{grandTotal.toLocaleString()}</span></div><div className="text-[8px] opacity-50 mt-1">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE</div></div>
             <div className="h-20"></div>
           </div>
         )}
