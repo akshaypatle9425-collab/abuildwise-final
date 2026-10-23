@@ -2,7 +2,7 @@
 // ABuildWise OS - FINAL 516 LINE - NO WORD CUT - FIXED
 // CONTRACT CODES: TWM = Turnkey With Material | CWM = Centring With Material
 // LOM = Labour Only Material | CSC = Custom Split Contract
-// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY
+// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY - NEW: WITH MATERIAL / WITHOUT MATERIAL / LABOUR ONLY / ITEM-WISE - BIG CITY + VILLAGE BOTH UNDERSTAND
 // P1 = Ground Floor Only - PRESERVED 100%
 import { useState, useEffect, useMemo } from "react";
 import { jsPDF } from "jspdf";
@@ -99,44 +99,44 @@ const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","li
 const WORLD_CONTRACT_MODES: any = {
   full: {
     id: "full",
-    indiaName: "TWM - WITH MATERIAL - Full Theka",
-    worldName: "TURNKEY - FULL SERVICE (TWM)",
-    ownerLabel: "🏠 TWM - Pura Kaam Thekedar Karega",
-    ownerDesc: "Aap sirf paisa denge, Cement se Lift tak sab thekedar layega",
-    contractorLabel: "TWM - FULL WITH MATERIAL",
+    indiaName: "WITH MATERIAL - TWM - Full Theka - BIG CITY + VILLAGE",
+    worldName: "WITH MATERIAL - TURNKEY FULL SERVICE (TWM) - BIG CITY STANDARD",
+    ownerLabel: "🏠 WITH MATERIAL - Pura Kaam Thekedar Karega",
+    ownerDesc: "Aap sirf paisa denge, Cement se Lift tak sab thekedar layega - Delhi Mumbai me TURNKEY bolte hain",
+    contractorLabel: "WITH MATERIAL - FULL WITH MATERIAL - TWM",
     ratePerSqft: 0,
     contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift"],
     ownerGive: []
   },
   centring: {
     id: "centring",
-    indiaName: "CWM - CENTRING WITH MATERIAL",
-    worldName: "FORMWORK + LABOUR (CWM)",
-    ownerLabel: "🏗️ CWM - Saman Mera, Kaam Thekedar Ka",
-    ownerDesc: "Building ka saman aapka, Ply Batta Jack + Mistri Beldar thekedar ka",
-    contractorLabel: "CWM - CENTRING WITH MATERIAL",
+    indiaName: "WITHOUT MATERIAL - CWM - Centring + Labour Theka",
+    worldName: "WITHOUT MATERIAL - FORMWORK + LABOUR (CWM) - METRO STANDARD",
+    ownerLabel: "🏗️ WITHOUT MATERIAL - Saman Mera, Kaam Thekedar Ka",
+    ownerDesc: "Building ka saman aapka, Ply Batta Jack + Mistri Beldar thekedar ka - Bade sahar me WITHOUT MATERIAL bolte hain",
+    contractorLabel: "WITHOUT MATERIAL - CENTRING WITH MATERIAL - CWM",
     ratePerSqft: 450,
     contractorGive: ["ply","batta","jack","mistri","beldar","curing"],
     ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"]
   },
   labour: {
     id: "labour",
-    indiaName: "LOM - LABOUR ONLY",
-    worldName: "LABOUR ONLY - WORLD LEVEL (LOM)",
-    ownerLabel: "👷 LOM - Sirf Karigar Chahiye",
-    ownerDesc: "Sab saman aapka, sirf Mistri Beldar thekedar ke - USA me sabse zyada",
-    contractorLabel: "LOM - LABOUR ONLY",
+    indiaName: "LABOUR ONLY - LOM - Sirf Karigar Theka",
+    worldName: "LABOUR ONLY - WORLD LEVEL (LOM) - LABOUR RATE",
+    ownerLabel: "👷 LABOUR ONLY - Sirf Karigar Chahiye",
+    ownerDesc: "Sab saman aapka, sirf Mistri Beldar thekedar ke - USA UK Dubai me LABOUR ONLY bolte hain",
+    contractorLabel: "LABOUR ONLY - LABOUR ONLY - LOM",
     ratePerSqft: 280,
     contractorGive: ["mistri","beldar"],
     ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"]
   },
   custom: {
     id: "custom",
-    indiaName: "CSC - CUSTOM THEKA - Tick Karo",
-    worldName: "CUSTOM SPLIT (CSC)",
-    ownerLabel: "⚙️ CSC - Custom - Main Chununga Kaun Kya Dega",
-    ownerDesc: "Aap tick karo kaun kya dega - Lift kaun dega",
-    contractorLabel: "CSC - CUSTOM",
+    indiaName: "ITEM-WISE - CSC - Custom - Tick Karo - Alag Alag",
+    worldName: "ITEM-WISE - CUSTOM SPLIT (CSC) - A LA CARTE",
+    ownerLabel: "⚙️ ITEM-WISE - Custom - Main Chununga Kaun Kya Dega",
+    ownerDesc: "Aap tick karo kaun kya dega - Lift kaun dega - Bade sahar me ITEM-WISE / A LA CARTE bolte hain",
+    contractorLabel: "ITEM-WISE - CUSTOM - CSC",
     ratePerSqft: 350,
     contractorGive: [],
     ownerGive: []
@@ -200,7 +200,7 @@ export default function Page(){
     setLiveLabel("Fetching GPS...");
     navigator.geolocation.getCurrentPosition(async (pos)=>{
       const {latitude, longitude} = pos.coords;
-      setCurrentLatLng({lat:latitude,lng:longitude});
+      setCurrentLatLng({lat:latitude, lng:longitude});
       try{
         const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
         const d = await rev.json();
@@ -382,7 +382,7 @@ export default function Page(){
     <div className="min-h-screen bg-[#02020a] text-white flex flex-col items-center p-2 pb-32 overflow-y-auto">
       <div className="w-full max-w-[720px]">
         <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/20 rounded-full px-4 py-2.5 mb-2">
-          <span className="font-bold text-[13px]">ABuildWise OS - WORLD 4 MODE</span>
+          <span className="font-bold text-[13px]">ABuildWise OS - WORLD 4 MODE - BIG CITY READY</span>
           <div className="flex bg-black/60 rounded-full p-1 border border-white/10">
             <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>MAKAN MALIK</button>
             <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="contractor"?"bg-cyan-400 text-black":"text-white/60"}`}>CONTRACTOR</button>
@@ -391,10 +391,10 @@ export default function Page(){
         <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/30 rounded-full px-2 py-1.5 mb-2 overflow-x-auto gap-1">
           <span className="text-[8px] font-bold text-cyan-300 whitespace-nowrap ml-2">CONTRACT TYPE:</span>
           <div className="flex bg-black/60 rounded-full p-1 border border-white/10 gap-1">
-            <button onClick={()=>setWorldMode("full")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="full"?"bg-cyan-400 text-black":"text-white/60"}`}>TWM</button>
-            <button onClick={()=>setWorldMode("centring")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="centring"?"bg-cyan-400 text-black":"text-white/60"}`}>CWM</button>
-            <button onClick={()=>setWorldMode("labour")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="labour"?"bg-cyan-400 text-black":"text-white/60"}`}>LOM</button>
-            <button onClick={()=>setWorldMode("custom")} className={`px-3 py-1 rounded-full text-[9px] font-bold whitespace-nowrap ${worldMode==="custom"?"bg-cyan-400 text-black":"text-white/60"}`}>CSC</button>
+            <button onClick={()=>setWorldMode("full")} className={`px-3 py-1 rounded-full text-[8px] font-bold whitespace-nowrap ${worldMode==="full"?"bg-cyan-400 text-black":"text-white/60"}`}>WITH MATERIAL</button>
+            <button onClick={()=>setWorldMode("centring")} className={`px-3 py-1 rounded-full text-[8px] font-bold whitespace-nowrap ${worldMode==="centring"?"bg-cyan-400 text-black":"text-white/60"}`}>WITHOUT MATERIAL</button>
+            <button onClick={()=>setWorldMode("labour")} className={`px-3 py-1 rounded-full text-[8px] font-bold whitespace-nowrap ${worldMode==="labour"?"bg-cyan-400 text-black":"text-white/60"}`}>LABOUR ONLY</button>
+            <button onClick={()=>setWorldMode("custom")} className={`px-3 py-1 rounded-full text-[8px] font-bold whitespace-nowrap ${worldMode==="custom"?"bg-cyan-400 text-black":"text-white/60"}`}>ITEM-WISE</button>
           </div>
         </div>
         <div className="flex justify-between items-center bg-black/40 border border-cyan-400/20 rounded-full px-4 py-1.5 mb-3">
@@ -405,7 +405,7 @@ export default function Page(){
           <div className="bg-[#0f141f]/80 border border-white/10 rounded-[18px] p-4">
             <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{viewMode==="owner" ? "Makan Malik - Turant Lagat" : "Contractor - Kitna Lagega"} • {worldModeConfig.indiaName}</h2><button onClick={getLiveLocation} className="text-[9px] px-3 py-1 rounded-full bg-cyan-400 text-black font-bold">{liveLabel}</button></div>
             <div className="grid grid-cols-1 gap-2 mb-3 bg-black/30 p-2 rounded-[14px] border border-cyan-400/20">
-              <div className="text-[9px] font-bold text-cyan-300 tracking-wider">🌍 WORLD LEVEL THEKA CHUNO - TWM / CWM / LOM / CSC - 150 COUNTRY</div>
+              <div className="text-[9px] font-bold text-cyan-300 tracking-wider">🌍 WORLD LEVEL THEKA - WITH MATERIAL / WITHOUT MATERIAL / LABOUR ONLY / ITEM-WISE - 150 COUNTRY - BADE SAHAR + GAON DONO SAMJHE</div>
               {(Object.keys(WORLD_CONTRACT_MODES) as Array<keyof typeof WORLD_CONTRACT_MODES>).map((k)=>{
                 const m = WORLD_CONTRACT_MODES[k];
                 const active = worldMode===k;
@@ -419,7 +419,7 @@ export default function Page(){
             </div>
             {worldMode==="custom" && (
               <div className="mb-3 bg-yellow-500/10 border border-yellow-500/20 rounded-[12px] p-3 max-h-[200px] overflow-y-auto">
-                <div className="text-[10px] font-bold text-yellow-300 mb-2">CUSTOM TICK - Kaun Kya Dega - Lift kaun dega?</div>
+                <div className="text-[10px] font-bold text-yellow-300 mb-2">CUSTOM TICK - Kaun Kya Dega - Lift kaun dega? - ITEM-WISE</div>
                 {finalMaterials.map((mat:any)=>(
                   <div key={mat.id} className="flex justify-between items-center py-1 border-b border-white/5">
                     <span className="text-[10px]">{mat.id.toUpperCase()}</span>
@@ -454,7 +454,7 @@ export default function Page(){
               <div><select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-3 py-3 text-[12px] font-bold">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getPLabel(String(n))}</option>)}</select></div>
             </div>
             <div className="mt-3 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border-2 border-cyan-400/50 rounded-[16px] p-3">
-              <div className="flex justify-between items-center mb-2"><h3 className="font-black text-[11px] tracking-wider text-cyan-300">{viewMode==="owner" ? "🏠 MALIK - TURANT LAGAT" : "🏗️ CONTRACTOR - PURA KHARCHA"} • {worldModeConfig.indiaName}</h3><span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400 text-black font-bold">LIVE AUTO {worldMode.toUpperCase()}</span></div>
+              <div className="flex justify-between items-center mb-2"><h3 className="font-black text-[11px] tracking-wider text-cyan-300">{viewMode==="owner" ? "🏠 MALIK - TURANT LAGAT" : "🏗️ CONTRACTOR - PURA KHARCHA"} • {worldModeConfig.indiaName}</h3><span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400 text-black font-bold">LIVE AUTO {worldMode.toUpperCase()} - BIG CITY READY</span></div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="bg-black/40 rounded-lg p-2 border border-white/10"><div className="text-[8px] opacity-60 flex justify-between"><span>PLOT AREA</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"plot", value:plotArea})} className="text-cyan-400 font-bold ml-1">EDIT2</button></div><div className="font-bold text-[13px]">{plotNum} SQFT</div></div>
                 <div className="bg-black/40 rounded-lg p-2 border border-cyan-400/30"><div className="text-[8px] opacity-60 flex justify-between"><span>COVERAGE LIVE</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"coverage", value:String(Math.round(coverage*100))})} className="text-cyan-400 font-bold ml-1">EDIT2</button></div><div className="font-bold text-[13px] text-cyan-300">{Math.round(coverage*100)}% • {groundPlate} SQFT</div></div>
