@@ -90,6 +90,10 @@ const COMPANY_MASTER: Record<string, {name:string, mult:number, label:string}[]>
 }
 type EditState = { idx:number, qty:number, rate:number, company:string, cat:string, id:string } | null;
 type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"|"premium", value:string } | null;
+
+// --- CONTRACTOR ITEMS (Ye Makan Malik ko nahi dikhenge) ---
+const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","lift"];
+
 export default function Page(){
   const [geo,setGeo]=useState("Nagpur");
   const [liveLabel,setLiveLabel]=useState("CURRENT LOCATION");
@@ -112,6 +116,7 @@ export default function Page(){
   const [manualCoverageAdd, setManualCoverageAdd] = useState<number|null>(null);
   const [customPkgRatesAdd, setCustomPkgRatesAdd] = useState<{basic:number|null, standard:number|null, premium:number|null}>({basic:null, standard:null, premium:null});
   const [dailyFluc, setDailyFluc] = useState(1);
+  const [viewMode, setViewMode] = useState<"owner"|"contractor">("owner");
   useEffect(()=>{
     const day = new Date().getDate();
     const fluc = 1 + ((day % 7) - 3) * 0.006;
@@ -170,11 +175,22 @@ export default function Page(){
     return mats;
   },[apiData, storeys]);
   const finalMaterials = customMaterials || baseMaterials;
+  const ownerMaterials = finalMaterials.filter((m:any)=>!CONTRACTOR_ONLY_IDS.includes(m.id));
+  const displayMaterials = viewMode==="owner" ? ownerMaterials : finalMaterials;
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
   const displayTotal = `Rs.${grandTotal.toLocaleString("en-IN")}`;
   const effectiveRate = apiData.effectiveRatePerSqft || Math.round(grandTotal / (tca || 1));
   const baseRateDisplay = apiData.baseRatePerSqft || getCityRate(geo);
+  const cityBaseRate = getCityRate(geo);
+  const basicRateShow = customPkgRatesAdd.basic || Math.round(cityBaseRate*0.82);
+  const standardRateShow = customPkgRatesAdd.standard || cityBaseRate;
+  const premiumRateShow = customPkgRatesAdd.premium || Math.round(cityBaseRate*1.38);
+  const ownerCharge = tca * standardRateShow;
+  const contractorCost = grandTotal;
+  const profit = ownerCharge - contractorCost;
+  const profitPer = ownerCharge>0? Math.round((profit/ownerCharge)*100):0;
+
   const applyEdit = () => {
     if(!edit) return;
     const updated = [...finalMaterials];
@@ -199,7 +215,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = `ABuildWise OS - ${geo.toUpperCase()} Plot: ${plotNum} Coverage: ${Math.round(coverage*100)}% = ${groundPlate} Total: ${tca} Grand: Rs.${grandTotal.toLocaleString()}`;
+    const text = viewMode==="owner" ? `MAKAN MALIK - ${geo.toUpperCase()} Plot ${plotNum} Builtup ${tca} Total Rs.${ownerCharge.toLocaleString()}` : `CONTRACTOR - ${geo.toUpperCase()} Plot ${plotNum} Kharcha Rs.${contractorCost.toLocaleString()} Charge Rs.${ownerCharge.toLocaleString()} Profit Rs.${profit.toLocaleString()}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const handlePDF = () => {
@@ -207,138 +223,99 @@ export default function Page(){
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     let y = 0;
-
-    // --- PAGE BG WHITE ---
     doc.setFillColor(255,255,255);
     doc.rect(0,0,W,H,'F');
-
-    // --- HEADER DARK ---
     y=0;
     doc.setFillColor(10,15,30);
     doc.rect(0,0,W,20,'F');
     doc.setTextColor(255,255,255);
     doc.setFont("helvetica","bold");
     doc.setFontSize(13);
-    doc.text("ABuildWise OS - BUILD ESTIMATE", 10, 12);
+    doc.text(viewMode==="owner" ? "MAKAN MALIK - TURANT LAGAT" : "CONTRACTOR - KITNA LAGEGA", 10, 12);
     doc.setFontSize(8);
     doc.setFont("helvetica","normal");
     doc.setTextColor(0,229,255);
-    doc.text(`${geo.toUpperCase()} LIVE | BASE Rs.${baseRateDisplay} | EFF Rs.${effectiveRate} | ${tca} SQFT | Cement Rs.${apiData.cementRate} | Steel Rs.${apiData.steelRate}`, 10, 17);
-
+    doc.text(`${geo.toUpperCase()} | ${tca} SQFT | ${viewMode.toUpperCase()} | Cement Rs.${apiData.cementRate} Steel Rs.${apiData.steelRate}`, 10, 17);
     y=24;
-    // --- BUILT-UP BOX HIGH CONTRAST ---
     doc.setFillColor(240,245,255);
     doc.setDrawColor(0,0,0);
     doc.rect(10,y,W-20,32,'FD');
     doc.setTextColor(0,0,0);
     doc.setFont("helvetica","bold");
     doc.setFontSize(9);
-    doc.text(`PLOT: ${plotNum} SQFT | COVERAGE: ${Math.round(coverage*100)}% = ${groundPlate} SQFT | GROUND: ${groundPlate} | TOTAL: ${tca} SQFT - ${getPLabel(storeys)}`, 12, y+6);
+    doc.text(`PLOT: ${plotNum} SQFT | COVERAGE: ${Math.round(coverage*100)}% = ${groundPlate} SQFT | TOTAL: ${tca} SQFT - ${getPLabel(storeys)}`, 12, y+6);
     doc.setFontSize(7);
     doc.setFont("helvetica","normal");
-    doc.text(`BUILT-UP FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT`, 12, y+12);
-    doc.setFillColor(0,229,255);
+    doc.text(`FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT`, 12, y+12);
+    doc.setFillColor(viewMode==="owner"?0:255, viewMode==="owner"?229:200, 0);
     doc.rect(10,y+16,W-20,10,'F');
     doc.setTextColor(0,0,0);
     doc.setFont("helvetica","bold");
     doc.setFontSize(10);
-    doc.text(`TOTAL BUILT-UP: ${tca} SQFT | ${geo.toUpperCase()} LIVE`, 12, y+22.5);
-    
+    doc.text(viewMode==="owner" ? `CUSTOMER TOTAL: Rs.${ownerCharge.toLocaleString('en-IN')} @ Rs.${standardRateShow}/SQFT` : `CHARGE: Rs.${ownerCharge.toLocaleString('en-IN')} | KHARCHA: Rs.${contractorCost.toLocaleString('en-IN')} | PROFIT: Rs.${profit.toLocaleString('en-IN')} (${profitPer}%)`, 12, y+22.5);
     y+=40;
-    // --- PACKAGE COST ---
     doc.setTextColor(0,0,0);
     doc.setFontSize(11);
-    doc.text("TOTAL COST ESTIMATE - LIVE",10,y);
-    y+=4;
-    const costBoxW=(W-26)/3;
-    const costs=[
-      {label:"BASIC",rate:basicRateShow,total:Math.round(tca*basicRateShow)},
-      {label:"STANDARD LIVE",rate:standardRateShow,total:Math.round(tca*standardRateShow)},
-      {label:"PREMIUM",rate:premiumRateShow,total:Math.round(tca*premiumRateShow)}
-    ];
-    costs.forEach((c,i)=>{
-      const cx=10+i*(costBoxW+3);
-      if(c.label==="STANDARD LIVE") doc.setFillColor(0,229,255);
-      else doc.setFillColor(230,230,230);
-      doc.setDrawColor(0,0,0);
-      doc.rect(cx,y,costBoxW,18,'FD');
-      doc.setTextColor(0,0,0);
-      doc.setFontSize(7);
-      doc.setFont("helvetica","bold");
-      doc.text(c.label,cx+3,y+5);
-      doc.setFontSize(10);
-      doc.text(`Rs.${c.rate}/sqft`,cx+3,y+11);
-      doc.setFontSize(7);
-      doc.setFont("helvetica","normal");
-      doc.text(`Total: Rs.${(c.total/100000).toFixed(2)} Lakh`,cx+3,y+15);
-    });
-    y+=26;
-
-    // --- MATERIALS HEADER ---
-    doc.setFillColor(10,15,30);
-    doc.rect(10,y,W-20,9,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica","bold");
-    doc.text(`${geo.toUpperCase()} - ${pkg.toUpperCase()} - MATERIALS LIST - HIGH VISIBILITY`,12,y+6);
-    y+=11;
-
-    // Table Head
+    doc.text(viewMode==="owner" ? "OWNER MATERIALS - TURANT LAGAT" : "CONTRACTOR FULL LIST",10,y);
+    y+=6;
     doc.setFillColor(0,0,0);
     doc.rect(10,y,W-20,7,'F');
     doc.setTextColor(255,255,255);
     doc.setFontSize(8);
     doc.text("ITEM - COMPANY - QTY @ RATE",12,y+4.8);
     doc.text("AMOUNT",W-12,y+4.8,{align:'right'});
-    y+=8;
-
-    // --- MATERIALS - BLACK ON WHITE ---
-    finalMaterials.forEach((m:any, idx:number)=>{
-      if(y>275){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=10; }
-      // HIGH CONTRAST: white / light grey bg + BLACK text + border
-      if(idx % 2 === 0) doc.setFillColor(255,255,255);
-      else doc.setFillColor(235,240,250);
+    y+=9;
+    const pdfMats = viewMode==="owner" ? ownerMaterials : finalMaterials;
+    pdfMats.forEach((m:any, idx:number)=>{
+      const leftFull = `${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`;
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(8.5);
+      const leftLines = doc.splitTextToSize(leftFull, 125);
+      const lineHeight = 4.5;
+      const blockH = Math.max(leftLines.length * lineHeight + 4, 9);
+      if(y + blockH > 280){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=10; }
+      if(idx % 2 === 0) doc.setFillColor(255,255,255); else doc.setFillColor(235,240,250);
       doc.setDrawColor(150,150,150);
-      doc.rect(10,y,W-20,9,'FD');
-      
-      doc.setTextColor(0,0,0); // BLACK
+      doc.rect(10,y,W-20,blockH,'FD');
+      doc.setTextColor(0,0,0);
+      doc.text(leftLines, 12, y+5);
       doc.setFont("helvetica","bold");
-      doc.setFontSize(9);
-      const leftText = `${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`;
-      doc.text(leftText.substring(0,48),12,y+5.8);
-      
-      doc.setFont("helvetica","bold");
-      doc.text(`Rs.${m.amount.toLocaleString('en-IN')}`,W-12,y+5.8,{align:'right'});
-      y+=10;
+      doc.text(`Rs.${m.amount.toLocaleString('en-IN')}`,W-12,y+5,{align:'right'});
+      y+=blockH+1;
     });
-
     y+=4;
     if(y>270){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=15; }
-    // --- GRAND TOTAL ---
-    doc.setFillColor(0,229,255);
+    doc.setFillColor(viewMode==="owner"? 34:255, viewMode==="owner"?211:193, viewMode==="owner"?238:7);
     doc.setDrawColor(0,0,0);
     doc.rect(10,y,W-20,14,'FD');
     doc.setTextColor(0,0,0);
     doc.setFontSize(12);
     doc.setFont("helvetica","bold");
-    doc.text(`GRAND TOTAL LIVE: Rs.${grandTotal.toLocaleString('en-IN')} | EFF Rs.${effectiveRate}/SQFT`,12,y+8.5);
-
-    doc.save(`${geo}_${tca}SQFT_ABuildWise_OS.pdf`);
+    if(viewMode==="owner"){
+      doc.text(`MALIK FINAL: Rs.${ownerCharge.toLocaleString('en-IN')} | ${tca} SQFT x Rs.${standardRateShow}`,12,y+8.5);
+    } else {
+      doc.text(`PROFIT: Rs.${profit.toLocaleString('en-IN')} | CHARGE Rs.${ownerCharge.toLocaleString('en-IN')} - KHARCHA Rs.${contractorCost.toLocaleString('en-IN')}`,12,y+8.5);
+    }
+    doc.save(`${geo}_${tca}_${viewMode}_ABuildWise.pdf`);
   };
-  const cityBaseRate = getCityRate(geo);
-  const basicRateShow = customPkgRatesAdd.basic || Math.round(cityBaseRate*0.82);
-  const standardRateShow = customPkgRatesAdd.standard || cityBaseRate;
-  const premiumRateShow = customPkgRatesAdd.premium || Math.round(cityBaseRate*1.38);
+
   return (
     <div className="min-h-screen bg-[#02020a] text-white flex flex-col items-center p-2 pb-32 overflow-y-auto">
       <div className="w-full max-w-[720px]">
-        <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/20 rounded-full px-4 py-2.5 mb-4">
+        <div className="flex justify-between items-center bg-[#0f141f] border border-cyan-400/20 rounded-full px-4 py-2.5 mb-2">
           <span className="font-bold text-[13px]">ABuildWise OS</span>
+          <div className="flex bg-black/60 rounded-full p-1 border border-white/10">
+            <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>MAKAN MALIK</button>
+            <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="contractor"?"bg-cyan-400 text-black":"text-white/60"}`}>CONTRACTOR</button>
+          </div>
+        </div>
+        <div className="flex justify-between items-center bg-black/40 border border-cyan-400/20 rounded-full px-4 py-1.5 mb-3">
           <span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT</span>
+          <span className="text-[9px] font-bold text-white">{viewMode==="owner" ? `MALIK TOTAL: Rs.${ownerCharge.toLocaleString()}` : `PROFIT: Rs.${profit.toLocaleString()} (${profitPer}%)`}</span>
         </div>
         {phase===1 && (
           <div className="bg-[#0f141f]/80 border border-white/10 rounded-[18px] p-4">
-            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">Project Config • LIVE MARKET RATE</h2><button onClick={getLiveLocation} className="text-[9px] px-3 py-1 rounded-full bg-cyan-400 text-black font-bold">{liveLabel}</button></div>
+            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{viewMode==="owner" ? "Makan Malik - Turant Lagat" : "Contractor - Kitna Lagega"}</h2><button onClick={getLiveLocation} className="text-[9px] px-3 py-1 rounded-full bg-cyan-400 text-black font-bold">{liveLabel}</button></div>
             <div className="relative z-[100]">
               <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[12px] outline-none" placeholder="City search" />
               {show && (<div className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-cyan-400/40 rounded-xl z-[9999] max-h-[200px] overflow-y-auto">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-4 py-2 text-[12px] hover:bg-cyan-500/20 cursor-pointer flex justify-between"><span>{c}</span><span className="text-cyan-300">Rs.{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
@@ -362,7 +339,7 @@ export default function Page(){
               <div><select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-3 py-3 text-[12px] font-bold">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getPLabel(String(n))}</option>)}</select></div>
             </div>
             <div className="mt-3 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border-2 border-cyan-400/50 rounded-[16px] p-3">
-              <div className="flex justify-between items-center mb-2"><h3 className="font-black text-[11px] tracking-wider text-cyan-300">🏗️ BUILT-UP BOX - 1 PAGE</h3><span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400 text-black font-bold">LIVE AUTO</span></div>
+              <div className="flex justify-between items-center mb-2"><h3 className="font-black text-[11px] tracking-wider text-cyan-300">{viewMode==="owner" ? "🏠 MALIK - TURANT LAGAT" : "🏗️ CONTRACTOR - PURA KHARCHA"}</h3><span className="text-[8px] px-2 py-0.5 rounded-full bg-cyan-400 text-black font-bold">LIVE AUTO</span></div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="bg-black/40 rounded-lg p-2 border border-white/10"><div className="text-[8px] opacity-60 flex justify-between"><span>PLOT AREA</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"plot", value:plotArea})} className="text-cyan-400 font-bold ml-1">EDIT2</button></div><div className="font-bold text-[13px]">{plotNum} SQFT</div></div>
                 <div className="bg-black/40 rounded-lg p-2 border border-cyan-400/30"><div className="text-[8px] opacity-60 flex justify-between"><span>COVERAGE LIVE</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"coverage", value:String(Math.round(coverage*100))})} className="text-cyan-400 font-bold ml-1">EDIT2</button></div><div className="font-bold text-[13px] text-cyan-300">{Math.round(coverage*100)}% • {groundPlate} SQFT</div></div>
@@ -370,20 +347,38 @@ export default function Page(){
                 <div className="bg-black/40 rounded-lg p-2 border border-white/10"><div className="text-[8px] opacity-60 flex justify-between"><span>{getPLabel(storeys)}</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"floor", value:storeys})} className="text-cyan-400 font-bold ml-1">EDIT2</button></div><div className="font-bold text-[12px]">{storeys==="1" ? "Ground Floor Only" : `P${storeys} = ${parseInt(storeys)-1} Floor Up`}</div><div className="text-[7px] opacity-50">{storeys==="1" ? `${groundPlate} SQFT Total` : `${groundPlate} x ${storeys} = ${tca}`}</div></div>
               </div>
               <div className="mt-2 bg-black/60 rounded-full px-3 py-2 border border-cyan-400/20 flex justify-between items-center"><span className="text-[9px] opacity-70">BUILT-UP FORMULA</span><span className="text-[10px] font-bold text-cyan-300">{plotNum} x {Math.round(coverage*100)}% = {groundPlate} x {storeys} = {tca} SQFT</span></div>
-              <div className="mt-2 flex gap-2"><div className="flex-1 bg-cyan-400 text-black rounded-full py-1.5 text-center font-black text-[11px]">TOTAL BUILT-UP: {tca} SQFT</div><div className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-[9px]">📍 {geo.toUpperCase()} LIVE</div></div>
+              <div className="mt-2 flex gap-2"><div className="flex-1 bg-cyan-400 text-black rounded-full py-1.5 text-center font-black text-[11px]">{viewMode==="owner" ? `MALIK TOTAL: Rs.${ownerCharge.toLocaleString()}` : `TOTAL BUILT-UP: ${tca} SQFT - PROFIT Rs.${profit.toLocaleString()}`}</div><div className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-[9px]">📍 {geo.toUpperCase()} LIVE</div></div>
             </div>
-            <button onClick={()=>setPhase(2)} className="w-full mt-4 mb-6 bg-white text-black font-bold py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(34,211,238,0.5)]">GENERATE — {displayTotal} • BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • {finalMaterials.length} ITEMS LIVE</button>
+            <button onClick={()=>setPhase(2)} className="w-full mt-4 mb-6 bg-white text-black font-bold py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(34,211,238,0.5)]">{viewMode==="owner" ? `DEKHE LAGAT — Rs.${ownerCharge.toLocaleString()} • ${tca} SQFT` : `DEKHE KHARCHA — Kharcha Rs.${contractorCost.toLocaleString()} Profit Rs.${profit.toLocaleString()} • ${displayMaterials.length} ITEMS`}</button>
             <div className="h-24 w-full"></div>
             {boxEditModal && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-cyan-400/50 rounded-[16px] p-4 w-full max-w-[340px]"><h3 className="font-bold text-[12px] mb-1">EDIT {boxEditModal.type.toUpperCase()} - UNLOCKED</h3><input autoFocus type="number" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value:e.target.value})} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-4 py-3 text-[14px] font-bold outline-none" /><div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-cyan-400 text-black font-bold rounded-full py-2.5 text-[11px]">APPLY UNLOCK</button></div></div></div>)}
           </div>
         )}
         {phase===2 && (
           <div className="bg-[#0f141f]/90 border border-cyan-400/30 rounded-[18px] p-4 mb-24">
-            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{geo} • BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT</h2><button onClick={()=>setPhase(1)} className="text-[10px] px-3 py-1 rounded-full bg-white/10">← BACK</button></div>
-            <div className="max-h-[45vh] overflow-y-auto">{finalMaterials.map((m:any, idx:number)=><div key={m.id} className="flex justify-between bg-white/5 rounded-full px-3 py-2 text-[11px] mb-1"><span className="w-[60%] truncate">{m.name} — {m.qty} @ Rs.{m.rate}</span><div className="flex gap-2 items-center"><span className="font-bold">Rs.{m.amount.toLocaleString()}</span><button onClick={()=>setEdit({idx, qty:m.qty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-cyan-400 text-black px-3 py-1 rounded-full text-[9px] font-bold">EDIT</button></div></div>)}</div>
+            <div className="flex justify-between mb-3"><h2 className="font-bold text-[12px]">{geo} • {viewMode==="owner" ? `MALIK Rs.${ownerCharge.toLocaleString()}` : `CONTRACTOR Profit Rs.${profit.toLocaleString()}`} • {tca} SQFT</h2><button onClick={()=>setPhase(1)} className="text-[10px] px-3 py-1 rounded-full bg-white/10">← BACK</button></div>
+            <div className="flex bg-black/60 rounded-full p-1 border border-white/10 mb-3 w-fit">
+              <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>MALIK ({ownerMaterials.length})</button>
+              <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold ${viewMode==="contractor"?"bg-cyan-400 text-black":"text-white/60"}`}>CONTRACTOR ({finalMaterials.length})</button>
+            </div>
+            <div className="max-h-[45vh] overflow-y-auto">{displayMaterials.map((m:any)=>{
+              const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id);
+              return (<div key={m.id} className="flex justify-between bg-white/5 rounded-full px-3 py-2 text-[11px] mb-1"><span className="w-[60%] truncate">{m.name} — {m.qty} @ Rs.{m.rate} {CONTRACTOR_ONLY_IDS.includes(m.id) ? "(Cont. Side)" : ""}</span><div className="flex gap-2 items-center"><span className="font-bold">Rs.{m.amount.toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:m.qty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-cyan-400 text-black px-3 py-1 rounded-full text-[9px] font-bold">EDIT</button></div></div>)
+            })}</div>
             {edit && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-cyan-400/40 rounded-[16px] p-4 w-full max-w-[360px]"><h3 className="font-bold text-[12px] mb-3">EDIT LIVE - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[9px] opacity-60">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-3 py-2 text-[12px]" /></div><div><div className="text-[9px] opacity-60">Company</div><select value={edit.company} onChange={e=>setEdit({...edit, company: e.target.value})} className="w-full bg-black/60 border border-cyan-400/30 rounded-full px-3 py-3 text-[11px] font-bold">{(COMPANY_MASTER[edit.id] || [{name:edit.company, mult:1, label:"LIVE"}]).map((c:any)=>(<option key={c.name} value={c.name}>{c.name} - {c.label}</option>))}</select></div><div><div className="text-[9px] opacity-60">Rate Rs. LIVE</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-3 py-2 text-[12px] font-bold" /></div></div><div className="flex gap-2 mt-4"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-cyan-400 text-black font-bold rounded-full py-2.5 text-[11px]">APPLY LOCK</button></div></div></div>)}
-            <div className="grid grid-cols-2 gap-2 mt-3"><button onClick={handleWhatsApp} className="bg-green-600 text-white font-bold py-2.5 rounded-full text-[11px]">WhatsApp</button><button onClick={handlePDF} className="bg-white text-black font-bold py-2.5 rounded-full text-[11px]">PDF</button></div>
-            <div className="mt-2 text-[11px] bg-black/30 p-3 rounded-xl"><div className="flex justify-between font-bold text-cyan-300"><span>Grand Total LIVE</span><span>Rs.{grandTotal.toLocaleString()}</span></div><div className="text-[8px] opacity-50 mt-1">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE</div></div>
+            <div className="grid grid-cols-2 gap-2 mt-3"><button onClick={handleWhatsApp} className="bg-green-600 text-white font-bold py-2.5 rounded-full text-[11px]">WhatsApp</button><button onClick={handlePDF} className="bg-white text-black font-bold py-2.5 rounded-full text-[11px]">PDF - {viewMode==="owner"?"MALIK":"CONTRACTOR"}</button></div>
+            <div className="mt-2 text-[11px] bg-black/30 p-3 rounded-xl">
+              {viewMode==="owner" ? (
+                <div className="flex justify-between font-bold text-cyan-300"><span>Makan Malik Final</span><span>Rs.{ownerCharge.toLocaleString()}</span></div>
+              ) : (
+                <>
+                  <div className="flex justify-between font-bold text-white"><span>Tum Charge Karoge</span><span>Rs.{ownerCharge.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold text-yellow-300"><span>Tumhara Kharcha</span><span>Rs.{contractorCost.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-black text-cyan-300 text-[13px] mt-1 border-t border-white/10 pt-1"><span>PROFIT</span><span>Rs.{profit.toLocaleString()} ({profitPer}%)</span></div>
+                </>
+              )}
+              <div className="text-[8px] opacity-50 mt-1">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE</div>
+            </div>
             <div className="h-20"></div>
           </div>
         )}
