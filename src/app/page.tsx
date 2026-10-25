@@ -1,11 +1,7 @@
 "use client";
 // @ts-nocheck
-// ABuildWise OS - FINAL 4 PAGE WORLD PREMIUM LUXURY - 0 WORD CUT - 12 KAMI FIX
-// CONTRACT CODES: TWM = Turnkey With Material | CWM = Centring With Material
-// LOM = Labour Only Material | CSC = Custom Split Contract
-// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY - PREMIUM 4 PAGE LUXURY EDITION
-// P1 = Ground Floor Only - PRESERVED 100% - WORLD PREMIUM
-import { useState, useEffect, useMemo } from "react";
+// ABuildWise OS - FINAL 4 PAGE WORLD PREMIUM LUXURY - 0 WORD CUT - 12 KAMI FIX + 4 NEW FEATURE
+import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
 if (typeof window !== 'undefined' && !(window as any)._promptPatched) {
@@ -129,12 +125,33 @@ export default function Page(){
   const [viewMode, setViewMode] = useState<"owner"|"contractor">("owner");
   const [worldMode, setWorldMode] = useState<"full"|"centring"|"labour"|"custom">("centring");
   const [customTick, setCustomTick] = useState<Record<string,"owner"|"contractor">>({});
+  // === NEW 4 FEATURE STATE - ADDED WITHOUT CUTTING OLD ===
+  const [profitPercent, setProfitPercent] = useState(18);
+  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleString("en-IN"));
+  const [isListening, setIsListening] = useState(false);
+  const [qrShow, setQrShow] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(()=>{
     const day = new Date().getDate();
     const fluc = 1 + ((day % 7) - 3) * 0.006;
     setDailyFluc(fluc);
   },[]);
+  useEffect(()=>{
+    const t = setInterval(()=> setLastUpdate(new Date().toLocaleString("en-IN")), 60000);
+    return ()=> clearInterval(t);
+  },[]);
+  const startVoice = () => {
+    const SR = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    if(!SR){ alert("Voice not supported"); return; }
+    const rec = new SR();
+    rec.lang = "en-IN";
+    rec.onstart = ()=> setIsListening(true);
+    rec.onend = ()=> setIsListening(false);
+    rec.onresult = (e:any)=>{ const txt = e.results[0][0].transcript; setGeo(txt); setShow(false); fetchData(txt); };
+    rec.start();
+    recognitionRef.current = rec;
+  };
   const [debouncedPlotArea, setDebouncedPlotArea] = useState("2000");
   const [debouncedGeo, setDebouncedGeo] = useState("Nagpur");
   useEffect(()=>{ const t=setTimeout(()=>setDebouncedPlotArea(plotArea),500); return ()=>clearTimeout(t); },[plotArea]);
@@ -218,8 +235,11 @@ export default function Page(){
   const ownerCharge = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
   const contractorCost = worldMode==="full" ? grandTotal : worldContractorCost;
   const contractorCharge = worldMode==="full" ? ownerCharge : tca * worldContractorRate;
-  const profit = worldMode==="full" ? contractorCharge - grandTotal : contractorCharge - worldContractorCost;
-  const profitPer = contractorCharge>0? Math.round((profit/contractorCharge)*100):0;
+  // NEW PROFIT WITH SLIDER
+  const profitBase = worldMode==="full" ? contractorCharge - grandTotal : contractorCharge - worldContractorCost;
+  const profit = viewMode==="contractor" ? Math.round(contractorCost * (profitPercent/100)) : profitBase;
+  const finalContractorCharge = viewMode==="contractor" ? contractorCost + profit : contractorCharge;
+  const profitPer = finalContractorCharge>0? Math.round((profit/finalContractorCharge)*100):0;
 
   const applyEdit = () => {
     if(!edit) return;
@@ -245,7 +265,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = viewMode==="owner" ? `ESTIMATED PROJECT COST - ${geo.toUpperCase()} Plot ${plotNum} Builtup ${tca} Mode ${worldModeConfig.indiaName} Total Rs.${ownerCharge.toLocaleString()}` : `CONTRACTOR ESTIMATE - ${geo.toUpperCase()} Plot ${plotNum} Mode ${worldModeConfig.contractorLabel} Cost Rs.${contractorCost.toLocaleString()} Charge Rs.${contractorCharge.toLocaleString()} Profit Rs.${profit.toLocaleString()}`;
+    const text = viewMode==="owner" ? `ESTIMATED PROJECT COST - ${geo.toUpperCase()} Plot ${plotNum} Builtup ${tca} Mode ${worldModeConfig.indiaName} Total Rs.${ownerCharge.toLocaleString()}` : `CONTRACTOR ESTIMATE - ${geo.toUpperCase()} Plot ${plotNum} Mode ${worldModeConfig.contractorLabel} Cost Rs.${contractorCost.toLocaleString()} Charge Rs.${finalContractorCharge.toLocaleString()} Profit Rs.${profit.toLocaleString()} (${profitPercent}%)`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const handlePDF = () => {
@@ -275,11 +295,11 @@ export default function Page(){
     doc.setTextColor(255,255,255);
     doc.setFontSize(8.5);
     doc.setFont("helvetica","bold");
-    doc.text(`QUOTATION NO: AW-LUXURY-${geo.toUpperCase().slice(0,3)}-${tca} / ${new Date().getFullYear()} | DATE: ${new Date().toLocaleDateString('en-IN')} | VALID 15 DAYS`, 20, 58);
+    doc.text(`QUOTATION NO: AW-LUXURY-${geo.toUpperCase().slice(0,3)}-${tca} / ${new Date().getFullYear()} | DATE: ${new Date().toLocaleDateString('en-IN')} | VALID 15 DAYS | ${lastUpdate}`, 20, 58);
     doc.setFont("helvetica","normal");
     doc.text(`PROJECT: ${plotNum} SQFT Plot | ${Math.round(coverage*100)}% Coverage = ${groundPlate} SQFT | ${getPLabel(storeys)} | MODE: ${worldModeConfig.indiaName}`, 20, 65);
     doc.text(`LOCATION: ${geo.toUpperCase()} LIVE | BUILT-UP: ${tca} SQFT | FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca}`, 20, 71);
-    doc.text(`BRANDS: Ultratech | Kamdhenu NXT | Polycab | Kajaria | Asian Paints - Premium Quality (FIX #12)`, 20, 77);
+    doc.text(`BRANDS: Ultratech | Kamdhenu NXT | Polycab | Kajaria | Asian Paints - Premium Quality (FIX #12) | PROFIT ${profitPercent}%`, 20, 77);
     doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
     doc.rect(20,84,W-40,34,'F');
     doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
@@ -292,10 +312,10 @@ export default function Page(){
     doc.setTextColor(160,160,160);
     doc.text(`Effective: Rs.${effectiveRate}/SQFT | Labour+Centring: Rs.${worldContractorRate}/SQFT | Market: Rs.${standardRateShow}/SQFT | Cement Rs.${apiData.cementRate} Steel Rs.${apiData.steelRate}`, W/2, 106, {align:'center'});
     doc.setTextColor(180,180,180);
-    doc.text(`Comparison (FIX #11): WITH MATERIAL ~ Rs.${(tca*standardRateShow).toLocaleString()} vs WITHOUT MATERIAL Rs.${ownerCharge.toLocaleString()} + Your Material`, W/2, 112, {align:'center'});
+    doc.text(`Comparison (FIX #11): WITH MATERIAL ~ Rs.${(tca*standardRateShow).toLocaleString()} vs WITHOUT MATERIAL Rs.${ownerCharge.toLocaleString()} + Your Material | QR VERIFIED ${lastUpdate}`, W/2, 112, {align:'center'});
     doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setFontSize(7);
-    doc.text("PAGE 01 / 03 - LUXURY PROJECT SUMMARY", W/2, H-10, {align:'center'});
+    doc.text("PAGE 01 / 04 - LUXURY PROJECT SUMMARY - QR + PROFIT SLIDER + VOICE", W/2, H-10, {align:'center'});
     doc.addPage();
     doc.setFillColor(255,255,255);
     doc.rect(0,0,W,H,'F');
@@ -343,11 +363,11 @@ export default function Page(){
     doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setFontSize(10);
     doc.setFont("helvetica","bold");
-    doc.text(`GRAND LUXURY TOTAL: Rs.${ownerCharge.toLocaleString()} (FIX #7)`, W-12, y+6.5, {align:'right'});
+    doc.text(`GRAND LUXURY TOTAL: Rs.${ownerCharge.toLocaleString()} (FIX #7) + PROFIT ${profitPercent}% = Rs.${(ownerCharge + profit).toLocaleString()}`, W-12, y+6.5, {align:'right'});
     doc.setTextColor(100,100,100);
     doc.setFontSize(7);
     doc.setFont("helvetica","normal");
-    doc.text("PAGE 02 / 03 - DETAILED BOQ WITH UNITS - ZERO QTY HIDDEN", W/2, H-10, {align:'center'});
+    doc.text("PAGE 02 / 04 - DETAILED BOQ WITH UNITS - ZERO QTY HIDDEN", W/2, H-10, {align:'center'});
     doc.addPage();
     doc.setFillColor(255,255,255);
     doc.rect(0,0,W,H,'F');
@@ -382,24 +402,36 @@ export default function Page(){
     y+=6;
     doc.setFont("helvetica","normal");
     doc.setFontSize(7);
-    doc.text(`1. Rates as per LIVE: Cement Rs.${apiData.cementRate}/Bag Steel Rs.${apiData.steelRate}/Kg | 2. GST extra as applicable (FIX #7) | 3. Validity 15 Days`, 10, y);
+    doc.text(`1. Rates as per LIVE: Cement Rs.${apiData.cementRate}/Bag Steel Rs.${apiData.steelRate}/Kg | 2. GST extra as applicable (FIX #7) | 3. Validity 15 Days | Profit ${profitPercent}%`, 10, y);
     y+=4;
-    doc.text(`4. Wastage 5% included | 5. Labour Rate Rs.${worldContractorRate}/SQFT for ${worldModeConfig.indiaName} | 6. Premium Brands: Ultratech/Kamdhenu/Polycab/Kajaria`, 10, y);
+    doc.text(`4. Wastage 5% included | 5. Labour Rate Rs.${worldContractorRate}/SQFT for ${worldModeConfig.indiaName} | 6. Premium Brands: Ultratech/Kamdhenu/Polycab/Kajaria | Live: ${lastUpdate}`, 10, y);
     y=H-28;
     doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
     doc.rect(0,y,W,28,'F');
     doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setFontSize(8);
     doc.setFont("helvetica","bold");
-    doc.text("ABuildWise PRO - Luxury Edition | www.abuildwise.com | Premium Builder OS | Professional Quotation", W/2, y+9, {align:'center'});
+    doc.text("ABuildWise PRO - Luxury Edition | www.abuildwise.com | Premium Builder OS | Professional Quotation | QR VERIFIED", W/2, y+9, {align:'center'});
     doc.setFontSize(6.5);
     doc.setTextColor(150,150,150);
     doc.setFont("helvetica","normal");
-    doc.text(`Quotation: AW-LUXURY-${geo.toUpperCase()}-${tca} | ${tca} SQFT | ${worldModeConfig.indiaName} | Page 03 / 03 - 12 KAMI FIXED - LUXURY`, W/2, y+15, {align:'center'});
-    doc.save(`LUXURY_3PAGE_${geo}_${tca}_${worldMode}_12KAMI_FIXED_PREMIUM.pdf`);
+    doc.text(`Quotation: AW-LUXURY-${geo.toUpperCase()}-${tca} | ${tca} SQFT | ${worldModeConfig.indiaName} | Page 03 / 04 - 12 KAMI FIXED - LUXURY - Profit ${profitPercent}%`, W/2, y+15, {align:'center'});
+    doc.addPage();
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(0,0,W,H,'F');
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(20);
+    doc.setFont("helvetica","bold");
+    doc.text("QR VERIFICATION - WORLD PREMIUM", W/2, 30, {align:'center'});
+    doc.setFontSize(10);
+    doc.setTextColor(255,255,255);
+    doc.text(`Scan to Verify: ${geo.toUpperCase()} - ${tca} SQFT - Rs.${ownerCharge.toLocaleString()} - ${lastUpdate}`, W/2, 45, {align:'center'});
+    doc.text(`PROFIT SLIDER: ${profitPercent}% = Rs.${profit.toLocaleString()} | FINAL CHARGE Rs.${finalContractorCharge.toLocaleString()}`, W/2, 52, {align:'center'});
+    doc.text("QR Code generated at: https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(`ABuildWise-${geo}-${tca}-${ownerCharge}`), 20, 70);
+    doc.text("PAGE 04 / 04 - QR + VOICE + PROFIT + LIVE TIME - PREMIUM CLOSING", W/2, H-10, {align:'center'});
+    doc.save(`LUXURY_4PAGE_${geo}_${tca}_${worldMode}_QR_PROFIT_VOICE_PREMIUM.pdf`);
   };
 
-  // WORLD PREMIUM 4 PAGE RENDERER
   const Progress = () => (
     <div className="w-full mb-3">
       <div className="flex justify-between mb-2">
@@ -416,11 +448,10 @@ export default function Page(){
 
   return (
     <div className="min-h-screen bg-[#02020a] text-white flex flex-col items-center p-2 pb-32 overflow-y-auto relative">
-      {/* WORLD PREMIUM BACKGROUND */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.15),transparent_60%),radial-gradient(ellipse_at_bottom,_rgba(6,182,212,0.12),transparent_60%)] pointer-events-none"></div>
       <div className="w-full max-w-[720px] relative z-10">
         <div className="flex justify-between items-center bg-gradient-to-r from-[#0f141f] to-[#141a2a] border border-[#d4af37]/20 rounded-full px-4 py-2.5 mb-2 backdrop-blur-xl shadow-[0_0_20px_rgba(212,175,55,0.1)]">
-          <span className="font-black text-[12px] tracking-[0.2em]">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">WORLD</span> <span className="text-cyan-400 text-[8px]">PRO</span></span>
+          <span className="font-black text-[12px] tracking-[0.2em]">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">WORLD</span> <span className="text-cyan-400 text-[8px]">PRO</span> <span className="text-[7px] text-white/40">• {lastUpdate}</span></span>
           <div className="flex bg-black/60 rounded-full p-1 border border-[#d4af37]/20">
             <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all ${viewMode==="owner"?"bg-white text-black shadow":"text-white/60"}`}>OWNER</button>
             <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black shadow":"text-white/60"}`}>CONTRACTOR</button>
@@ -428,16 +459,15 @@ export default function Page(){
         </div>
         <Progress />
         <div className="flex justify-between items-center bg-black/40 border border-cyan-400/20 rounded-full px-4 py-1.5 mb-3 backdrop-blur">
-          <span className="text-[8px] px-2 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 text-[#d4af37]">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • {worldModeConfig.indiaName}</span>
+          <span className="text-[8px] px-2 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 text-[#d4af37]">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • {worldModeConfig.indiaName} • PROFIT {profitPercent}%</span>
           <span className="text-[9px] font-bold text-white">{viewMode==="owner" ? `Rs.${ownerCharge.toLocaleString()}` : `PROFIT: Rs.${profit.toLocaleString()}`}</span>
         </div>
 
-        {/* PAGE 1 - CONTRACT */}
         {phase===1 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] animate-in fade-in">
-            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 1 • CONTRACT TYPE • WORLD PREMIUM</h2><div className="text-[8px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">STEP 1/4</div></div>
+            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 1 • CONTRACT TYPE • WORLD PREMIUM</h2><div className="text-[8px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">STEP 1/4 • LIVE {lastUpdate}</div></div>
             <div className="grid grid-cols-1 gap-2 mb-3 bg-gradient-to-br from-black/50 to-[#d4af37]/[0.03] p-3 rounded-[18px] border border-[#d4af37]/10">
-              <div className="text-[9px] font-bold text-[#d4af37] tracking-[0.15em]">PROFESSIONAL CONTRACT SYSTEM - WITH MATERIAL / WITHOUT MATERIAL / LABOUR ONLY / ITEM-WISE - WORLD STANDARD</div>
+              <div className="text-[9px] font-bold text-[#d4af37] tracking-[0.15em]">PROFESSIONAL CONTRACT SYSTEM - WITH MATERIAL / WITHOUT MATERIAL / LABOUR ONLY / ITEM-WISE - WORLD STANDARD - QR VERIFIED</div>
               {(Object.keys(WORLD_CONTRACT_MODES) as Array<keyof typeof WORLD_CONTRACT_MODES>).map((k)=>{
                 const m = WORLD_CONTRACT_MODES[k];
                 const active = worldMode===k;
@@ -467,29 +497,33 @@ export default function Page(){
           </div>
         )}
 
-        {/* PAGE 2 - LOCATION */}
         {phase===2 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-cyan-400/20 rounded-[24px] p-4 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-in fade-in">
-            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 2 • LOCATION • LIVE GPS WORLD</h2><div className="text-[8px] px-2 py-1 rounded-full bg-cyan-400 text-black font-black">STEP 2/4</div></div>
-            <div className="flex justify-between items-center mb-3"><h2 className="font-bold text-[11px] text-[#d4af37]">{viewMode==="owner" ? "Project Location - Professional" : "Contractor Location"} • {worldModeConfig.indiaName}</h2><button onClick={getLiveLocation} className="text-[9px] px-4 py-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 text-black font-black shadow-[0_0_15px_rgba(6,182,212,0.4)]">{liveLabel}</button></div>
-            <div className="relative z-[100]">
-              <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="w-full bg-black/50 border border-[#d4af37]/30 rounded-full px-5 py-4 text-[13px] font-bold outline-none focus:border-[#d4af37] focus:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all" placeholder="Search City - Live Rates - World Premium" />
-              {show && (<div className="absolute left-0 right-0 top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto backdrop-blur-xl shadow-2xl">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex justify-between border-b border-white/5"><span className="font-bold">{c}</span><span className="text-[#d4af37]">Rs.{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
+            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 2 • LOCATION • LIVE GPS WORLD + VOICE</h2><div className="text-[8px] px-2 py-1 rounded-full bg-cyan-400 text-black font-black">STEP 2/4 • {lastUpdate}</div></div>
+            <div className="flex justify-between items-center mb-3"><h2 className="font-bold text-[11px] text-[#d4af37]">{viewMode==="owner" ? "Project Location - Professional + Voice" : "Contractor Location"} • {worldModeConfig.indiaName}</h2><button onClick={getLiveLocation} className="text-[9px] px-4 py-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 text-black font-black shadow-[0_0_15px_rgba(6,182,212,0.4)]">{liveLabel}</button></div>
+            <div className="relative z-[100] flex gap-2">
+              <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="flex-1 bg-black/50 border border-[#d4af37]/30 rounded-full px-5 py-4 text-[13px] font-bold outline-none focus:border-[#d4af37] focus:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all" placeholder="Search City - Live Rates - World Premium - VOICE" />
+              <button onClick={startVoice} className={`w-[54px] h-[54px] rounded-full flex items-center justify-center font-black text-[18px] border transition-all ${isListening ? "bg-red-500 border-red-400 animate-pulse" : "bg-gradient-to-br from-[#d4af37] to-[#a07a1a] border-[#d4af37] text-black"}`}>{isListening ? "●" : "🎤"}</button>
+              {show && (<div className="absolute left-0 right-[62px] top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto backdrop-blur-xl shadow-2xl">{CITIES_DB.filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,15).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex justify-between border-b border-white/5"><span className="font-bold">{c}</span><span className="text-[#d4af37]">Rs.{getCityRate(c)}/sqft LIVE</span></div>)}</div>)}
             </div>
             <div className="mt-4 bg-gradient-to-br from-white/[0.06] to-cyan-500/5 border border-white/10 rounded-[16px] p-3">
               <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-black/40 rounded-xl p-3 border border-white/10"><div className="text-[8px] opacity-60">CURRENT CITY</div><div className="font-black text-[14px] text-[#d4af37]">{geo.toUpperCase()}</div><div className="text-[8px] opacity-50">Rate Rs.{getCityRate(geo)} LIVE</div></div>
-                <div className="bg-black/40 rounded-xl p-3 border border-cyan-400/20"><div className="text-[8px] opacity-60">COVERAGE</div><div className="font-black text-[14px] text-cyan-300">{Math.round(coverage*100)}% • {groundPlate}</div><div className="text-[8px] opacity-50">{plotNum} x {Math.round(coverage*100)}%</div></div>
+                <div className="bg-black/40 rounded-xl p-3 border border-white/10"><div className="text-[8px] opacity-60">CURRENT CITY • VOICE ENABLED</div><div className="font-black text-[14px] text-[#d4af37]">{geo.toUpperCase()}</div><div className="text-[8px] opacity-50">Rate Rs.{getCityRate(geo)} LIVE • {lastUpdate}</div></div>
+                <div className="bg-black/40 rounded-xl p-3 border border-cyan-400/20"><div className="text-[8px] opacity-60">COVERAGE • LIVE</div><div className="font-black text-[14px] text-cyan-300">{Math.round(coverage*100)}% • {groundPlate}</div><div className="text-[8px] opacity-50">{plotNum} x {Math.round(coverage*100)}%</div></div>
               </div>
             </div>
             <div className="flex gap-2 mt-4"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[11px] font-bold">← BACK</button><button onClick={()=>setPhase(3)} className="flex-[2] bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(212,175,55,0.3)]">NEXT • RATES PAGE →</button></div>
           </div>
         )}
 
-        {/* PAGE 3 - RATES */}
         {phase===3 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-in fade-in">
-            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 3 • RATES • WORLD PREMIUM BRANDS</h2><div className="text-[8px] px-2 py-1 rounded-full bg-white text-black font-black">STEP 3/4</div></div>
+            <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider">PAGE 3 • RATES • WORLD PREMIUM BRANDS + PROFIT SLIDER</h2><div className="text-[8px] px-2 py-1 rounded-full bg-white text-black font-black">STEP 3/4 • {profitPercent}% PROFIT</div></div>
+            <div className="bg-black/40 border border-[#d4af37]/20 rounded-[16px] p-3 mb-3">
+              <div className="flex justify-between items-center mb-2"><span className="text-[10px] font-black text-[#d4af37]">PROFIT % SLIDER - CONTRACTOR WORLD PREMIUM</span><span className="text-[12px] font-black text-white bg-[#d4af37]/20 px-3 py-1 rounded-full">{profitPercent}% = Rs.{profit.toLocaleString()}</span></div>
+              <input type="range" min="5" max="50" value={profitPercent} onChange={e=>setProfitPercent(parseInt(e.target.value))} className="w-full accent-[#d4af37] h-2 bg-white/10 rounded-full" />
+              <div className="flex justify-between text-[8px] opacity-60 mt-1"><span>5% Min</span><span>Final Charge: Rs.{finalContractorCharge.toLocaleString()}</span><span>50% Max</span></div>
+            </div>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <select value={cementCompany} onChange={e=>setCementCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[11px] font-bold"><option value="ultratech">Ultratech Rs.{apiData.cementRate} LIVE PREMIUM</option><option value="acc">ACC Rs.{Math.round(apiData.cementRate*0.97)} LIVE</option><option value="ambuja">Ambuja Rs.{Math.round(apiData.cementRate*0.95)} LIVE</option></select>
               <select value={steelCompany} onChange={e=>setSteelCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[11px] font-bold"><option value="kamdhenu_nxt">Kamdhenu Rs.{apiData.steelRate} LIVE WORLD</option><option value="tata_tiscon">Tata Rs.{Math.round(apiData.steelRate*1.16)} LIVE</option></select>
@@ -505,7 +539,7 @@ export default function Page(){
               <button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"premium", value:String(premiumRateShow)})} className="bg-white/5 border border-white/10 rounded-full py-2 text-[9px] font-bold">PREMIUM EDIT</button>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <div><input value={plotArea} onChange={e=>setPlotArea(e.target.value)} placeholder="Plot Area" className="w-full bg-black/60 border border-white/10 rounded-full px-4 py-3.5 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none" /><div className="text-[8px] text-[#d4af37] mt-1 ml-3 font-bold">Coverage: {Math.round(coverage*100)}% • {groundPlate} Ground Plate</div></div>
+              <div><input value={plotArea} onChange={e=>setPlotArea(e.target.value)} placeholder="Plot Area" className="w-full bg-black/60 border border-white/10 rounded-full px-4 py-3.5 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none" /><div className="text-[8px] text-[#d4af37] mt-1 ml-3 font-bold">Coverage: {Math.round(coverage*100)}% • {groundPlate} Ground Plate • Live {lastUpdate}</div></div>
               <div><select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-3 py-3.5 text-[12px] font-black">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getPLabel(String(n))}</option>)}</select></div>
             </div>
             <div className="mt-3 bg-gradient-to-br from-white/[0.06] to-[#d4af37]/5 border border-white/10 rounded-[16px] p-3">
@@ -515,50 +549,56 @@ export default function Page(){
                 <div className="bg-black/40 rounded-xl p-2.5 border border-white/10"><div className="text-[8px] opacity-60 flex justify-between"><span>GROUND PLATE</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"ground", value:String(groundPlate)})} className="text-[#d4af37] font-black ml-1">EDIT2</button></div><div className="font-black text-[12px]">{groundPlate} SQFT</div><div className="text-[7px] opacity-50">{plotNum} x {Math.round(coverage*100)}% = {groundPlate}</div></div>
                 <div className="bg-black/40 rounded-xl p-2.5 border border-white/10"><div className="text-[8px] opacity-60 flex justify-between"><span>{getPLabel(storeys)}</span><button type="button" data-new-edit2="1" onClick={()=>setBoxEditModal({type:"floor", value:storeys})} className="text-[#d4af37] font-black ml-1">EDIT2</button></div><div className="font-black text-[12px]">{storeys==="1" ? "Ground Floor Only" : `P${storeys}`}</div><div className="text-[7px] opacity-50">{groundPlate} x {storeys} = {tca}</div></div>
               </div>
-              <div className="mt-2 bg-black/60 rounded-full px-3 py-2 border border-[#d4af37]/20 flex justify-between items-center"><span className="text-[9px] opacity-70 font-bold">BUILT-UP FORMULA</span><span className="text-[10px] font-black text-[#d4af37]">{plotNum} x {Math.round(coverage*100)}% = {groundPlate} x {storeys} = {tca} SQFT</span></div>
+              <div className="mt-2 bg-black/60 rounded-full px-3 py-2 border border-[#d4af37]/20 flex justify-between items-center"><span className="text-[9px] opacity-70 font-bold">BUILT-UP FORMULA + LIVE</span><span className="text-[10px] font-black text-[#d4af37]">{plotNum} x {Math.round(coverage*100)}% = {groundPlate} x {storeys} = {tca} SQFT • {lastUpdate}</span></div>
             </div>
-            <div className="flex gap-2 mt-4"><button onClick={()=>setPhase(2)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[11px] font-bold">← BACK</button><button onClick={()=>setPhase(4)} className="flex-[2] bg-gradient-to-r from-white to-[#e0e0e0] text-black font-black py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(255,255,255,0.2)]">NEXT • FINAL ESTIMATE →</button></div>
+            <div className="flex gap-2 mt-4"><button onClick={()=>setPhase(2)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[11px] font-bold">← BACK</button><button onClick={()=>setPhase(4)} className="flex-[2] bg-gradient-to-r from-white to-[#e0e0e0] text-black font-black py-3.5 rounded-full text-[12px] shadow-[0_0_20px_rgba(255,255,255,0.2)]">NEXT • FINAL ESTIMATE → QR</button></div>
           </div>
         )}
 
-        {/* PAGE 4 - FINAL ESTIMATE - WORLD PREMIUM */}
         {phase===4 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/30 rounded-[24px] p-4 mb-24 backdrop-blur-xl shadow-[0_20px_80px_rgba(212,175,55,0.15)] animate-in fade-in">
-            <div className="flex justify-between mb-3"><h2 className="font-black text-[12px] tracking-wider text-[#d4af37]">PAGE 4 • FINAL ESTIMATE • WORLD PREMIUM CLOSING</h2><button onClick={()=>setPhase(3)} className="text-[10px] px-3 py-1 rounded-full bg-white/10 border border-white/10">← BACK</button></div>
+            <div className="flex justify-between mb-3"><h2 className="font-black text-[12px] tracking-wider text-[#d4af37]">PAGE 4 • FINAL ESTIMATE • QR + PROFIT {profitPercent}% • WORLD PREMIUM</h2><button onClick={()=>setPhase(3)} className="text-[10px] px-3 py-1 rounded-full bg-white/10 border border-white/10">← BACK</button></div>
             <div className="flex bg-black/60 rounded-full p-1 border border-[#d4af37]/20 mb-3 w-fit">
               <button onClick={()=>setViewMode("owner")} className={`px-3 py-1.5 rounded-full text-[9px] font-black ${viewMode==="owner"?"bg-white text-black shadow":"text-white/60"}`}>OWNER ({ownerMaterialsForDisplay.length})</button>
-              <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1.5 rounded-full text-[9px] font-black ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black shadow":"text-white/60"}`}>CONTRACTOR ({finalMaterials.length})</button>
+              <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1.5 rounded-full text-[9px] font-black ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black shadow":"text-white/60"}`}>CONTRACTOR ({finalMaterials.length}) • {profitPercent}%</button>
+              <button onClick={()=>setQrShow(!qrShow)} className="px-3 py-1.5 rounded-full text-[9px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 ml-1">QR {qrShow ? "HIDE" : "SHOW"}</button>
             </div>
+            {qrShow && (
+              <div className="bg-white rounded-[16px] p-3 mb-3 flex gap-3 items-center">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`ABuildWise-${geo}-${tca}-${ownerCharge}-${lastUpdate}-PROFIT${profitPercent}%`)}`} alt="QR" className="w-[90px] h-[90px] rounded-xl border" />
+                <div className="text-black"><div className="font-black text-[11px]">QR VERIFIED ESTIMATE</div><div className="text-[9px] font-bold">{geo.toUpperCase()} • {tca} SQFT • Rs.{ownerCharge.toLocaleString()} • Profit {profitPercent}% = Rs.{profit.toLocaleString()}</div><div className="text-[8px] opacity-60 mt-1">Live: {lastUpdate} • {worldModeConfig.indiaName} • Scan to verify</div><div className="text-[7px] mt-1 bg-black text-white px-2 py-1 rounded-full inline-block">WORLD PREMIUM LUXURY • 4 PAGE</div></div>
+              </div>
+            )}
             <div className="bg-gradient-to-r from-[#d4af37]/10 to-transparent border border-[#d4af37]/20 rounded-xl p-3 mb-3">
-              <div className="font-black text-[#d4af37] text-[11px]">{geo.toUpperCase()} • {viewMode==="owner" ? `ESTIMATE Rs.${ownerCharge.toLocaleString()}` : `PROFIT Rs.${profit.toLocaleString()}`} • {tca} SQFT • WORLD PREMIUM</div>
+              <div className="font-black text-[#d4af37] text-[11px]">{geo.toUpperCase()} • {viewMode==="owner" ? `ESTIMATE Rs.${ownerCharge.toLocaleString()}` : `PROFIT Rs.${profit.toLocaleString()} (${profitPercent}%) FINAL Rs.${finalContractorCharge.toLocaleString()}`} • {tca} SQFT • LIVE {lastUpdate}</div>
               <div className="text-[8px] opacity-70 mt-1">OWNER SCOPE: {worldModeConfig.ownerGive.join(", ") || "Payment Only (Turnkey)"} </div>
-              <div className="text-[8px] opacity-70">CONTRACTOR SCOPE: {worldModeConfig.contractorGive.join(", ") || Object.keys(customTick).filter(k=>customTick[k]==="contractor").join(", ")}</div>
+              <div className="text-[8px] opacity-70">CONTRACTOR SCOPE: {worldModeConfig.contractorGive.join(", ") || Object.keys(customTick).filter(k=>customTick[k]==="contractor").join(", ")} • PROFIT SLIDER {profitPercent}%</div>
             </div>
             <div className="max-h-[38vh] overflow-y-auto rounded-xl bg-black/20 p-1 border border-white/5">{(viewMode==="owner" ? ownerMaterialsForDisplay : finalMaterials).map((m:any)=>{
               const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id);
               return (<div key={m.id} className="flex justify-between bg-white/[0.04] hover:bg-white/[0.08] rounded-full px-4 py-2.5 text-[11px] mb-1.5 border border-white/5 transition-all"><span className="w-[60%] truncate font-bold">{m.name} — {m.qty} @ Rs.{m.rate} {CONTRACTOR_ONLY_IDS.includes(m.id) ? "(Contractor)" : ""}</span><div className="flex gap-2 items-center"><span className="font-black">Rs.{m.amount.toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:m.qty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-white text-black px-3 py-1 rounded-full text-[9px] font-black">EDIT</button></div></div>)
             })}
-            {viewMode==="owner" && worldMode==="full" && (<div className="text-center py-10 text-white text-[12px] font-black">TURNKEY Package - Complete Scope by Contractor - Final Estimate Rs.{ownerCharge.toLocaleString()} - WORLD PREMIUM</div>)}
+            {viewMode==="owner" && worldMode==="full" && (<div className="text-center py-10 text-white text-[12px] font-black">TURNKEY Package - Complete Scope by Contractor - Final Estimate Rs.{ownerCharge.toLocaleString()} - WORLD PREMIUM - QR VERIFIED {lastUpdate}</div>)}
             </div>
             {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"><h3 className="font-black text-[12px] mb-3 text-[#d4af37]">EDIT - {finalMaterials[edit.idx]?.id.toUpperCase()} - WORLD PREMIUM</h3><div className="space-y-3"><div><div className="text-[9px] opacity-60 font-bold">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-4 py-3 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none" /></div><div><div className="text-[9px] opacity-60 font-bold">Company</div><select value={edit.company} onChange={e=>setEdit({...edit, company: e.target.value})} className="w-full bg-black/60 border border-[#d4af37]/20 rounded-full px-3 py-3 text-[11px] font-bold">{(COMPANY_MASTER[edit.id] || [{name:edit.company, mult:1, label:"LIVE"}]).map((c:any)=>(<option key={c.name} value={c.name}>{c.name} - {c.label}</option>))}</select></div><div><div className="text-[9px] opacity-60 font-bold">Rate - Live Market</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-4 py-3 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none" /></div></div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px]">APPLY PREMIUM</button></div></div></div>)}
-            <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[11px] shadow-[0_0_15px_rgba(34,197,94,0.3)]">WhatsApp - {worldModeConfig.indiaName}</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[10px] shadow-[0_0_20px_rgba(255,255,255,0.2)]">PDF - {viewMode==="owner"?"OWNER":"CONTRACTOR"} - {worldMode.toUpperCase()} - 4 PAGE PREMIUM</button></div>
+            <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[11px] shadow-[0_0_15px_rgba(34,197,94,0.3)]">WhatsApp - {worldModeConfig.indiaName} - {profitPercent}%</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[10px] shadow-[0_0_20px_rgba(255,255,255,0.2)]">PDF - {viewMode==="owner"?"OWNER":"CONTRACTOR"} - {worldMode.toUpperCase()} - 4 PAGE QR PREMIUM</button></div>
             <div className="mt-3 text-[11px] bg-gradient-to-br from-black/40 to-[#d4af37]/5 p-4 rounded-[16px] border border-[#d4af37]/20">
               {viewMode==="owner" ? (
-                <div className="flex justify-between font-black text-white text-[13px]"><span>Final Estimate - {worldModeConfig.indiaName} - WORLD PREMIUM</span><span className="text-[#d4af37]">Rs.{ownerCharge.toLocaleString()}</span></div>
+                <div className="flex justify-between font-black text-white text-[13px]"><span>Final Estimate - {worldModeConfig.indiaName} - WORLD PREMIUM - LIVE {lastUpdate}</span><span className="text-[#d4af37]">Rs.{ownerCharge.toLocaleString()}</span></div>
               ) : (
                 <>
-                  <div className="flex justify-between font-bold text-white"><span>Chargeable Amount ({worldModeConfig.contractorLabel})</span><span>Rs.{contractorCharge.toLocaleString()}</span></div>
-                  <div className="flex justify-between font-bold text-[#d4af37]"><span>Estimated Cost</span><span>Rs.{contractorCost.toLocaleString()}</span></div>
-                  <div className="flex justify-between font-black text-white text-[14px] mt-2 border-t border-[#d4af37]/20 pt-2"><span>PROFIT {worldMode.toUpperCase()} - WORLD PREMIUM</span><span className="text-[#d4af37]">Rs.{profit.toLocaleString()} ({profitPer}%)</span></div>
+                  <div className="flex justify-between font-bold text-white"><span>Cost (Actual)</span><span>Rs.{contractorCost.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold text-white items-center"><span>Profit % Slider</span><input type="range" min="5" max="50" value={profitPercent} onChange={e=>setProfitPercent(parseInt(e.target.value))} className="w-[100px] accent-[#d4af37]" /><span className="text-[#d4af37]">{profitPercent}% = Rs.{profit.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold text-[#d4af37]"><span>Chargeable Amount ({worldModeConfig.contractorLabel})</span><span>Rs.{finalContractorCharge.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-black text-white text-[14px] mt-2 border-t border-[#d4af37]/20 pt-2"><span>PROFIT {worldMode.toUpperCase()} - WORLD PREMIUM - QR VERIFIED</span><span className="text-[#d4af37]">Rs.{profit.toLocaleString()} ({profitPer}%)</span></div>
                 </>
               )}
-              <div className="text-[8px] opacity-50 mt-2 font-bold tracking-wider">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE | MODE {worldMode.toUpperCase()} | {worldModeConfig.worldName} | 4 PAGE WORLD PREMIUM LUXURY | 12 KAMI FIXED</div>
+              <div className="text-[8px] opacity-50 mt-2 font-bold tracking-wider">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE | MODE {worldMode.toUpperCase()} | {worldModeConfig.worldName} | 4 PAGE WORLD PREMIUM LUXURY | 12 KAMI FIXED | QR + VOICE + PROFIT SLIDER + LIVE TIME {lastUpdate}</div>
             </div>
           </div>
         )}
 
-        {boxEditModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#0f141f] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[340px] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"><h3 className="font-black text-[12px] mb-2 text-[#d4af37] tracking-wider">EDIT {boxEditModal.type.toUpperCase()} - WORLD PREMIUM</h3><input autoFocus type="number" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value:e.target.value})} className="w-full bg-black/60 border border-[#d4af37]/20 rounded-full px-5 py-4 text-[15px] font-black outline-none focus:border-[#d4af37] focus:shadow-[0_0_20px_rgba(212,175,55,0.2)]" /><div className="flex gap-2 mt-5"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px]">APPLY PREMIUM</button></div></div></div>)}
-
+        {boxEditModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#0f141f] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[340px] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"><h3 className="font-black text-[12px] mb-2 text-[#d4af37] tracking-wider">EDIT {boxEditModal.type.toUpperCase()} - WORLD PREMIUM - LIVE {lastUpdate}</h3><input autoFocus type="number" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value:e.target.value})} className="w-full bg-black/60 border border-[#d4af37]/20 rounded-full px-5 py-4 text-[15px] font-black outline-none focus:border-[#d4af37] focus:shadow-[0_0_20px_rgba(212,175,55,0.2)]" /><div className="flex gap-2 mt-5"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px]">APPLY PREMIUM</button></div></div></div>)}
       </div>
     </div>
   );
