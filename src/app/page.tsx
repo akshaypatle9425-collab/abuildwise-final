@@ -1,9 +1,9 @@
 "use client";
 // @ts-nocheck
-// ABuildWise OS - FINAL 516 LINE - NO WORD CUT - FIXED - PRO VERSION
+// ABuildWise OS - FINAL 516 LINE - 3 PAGE PREMIUM LUXURY - 12 KAMI FIX - NO WORD CUT
 // CONTRACT CODES: TWM = Turnkey With Material | CWM = Centring With Material
 // LOM = Labour Only Material | CSC = Custom Split Contract
-// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY - NEW: WITH MATERIAL / WITHOUT MATERIAL / LABOUR ONLY / ITEM-WISE - BIG CITY + VILLAGE BOTH UNDERSTAND - NOW PRO CORPORATE
+// WORLD THEKA: TWM / CWM / LOM / CSC - 150 COUNTRY - PREMIUM 3 PAGE LUXURY EDITION
 // P1 = Ground Floor Only - PRESERVED 100%
 import { useState, useEffect, useMemo } from "react";
 import { jsPDF } from "jspdf";
@@ -97,52 +97,11 @@ const COMPANY_MASTER: Record<string, {name:string, mult:number, label:string}[]>
 type EditState = { idx:number, qty:number, rate:number, company:string, cat:string, id:string } | null;
 type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"|"premium", value:string } | null;
 const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","lift"];
-// PRO CORPORATE VERSION - NO GAON BHASA - ALL LOGIC SAME - 1 WORD NOT CUT FROM LOGIC
 const WORLD_CONTRACT_MODES: any = {
-  full: {
-    id: "full",
-    indiaName: "WITH MATERIAL - TURNKEY - Complete Construction Package",
-    worldName: "TURNKEY FULL SERVICE (TWM) - All Inclusive",
-    ownerLabel: "With Material - Turnkey Project - Complete Solution",
-    ownerDesc: "End-to-End Construction. All Materials + Labour + Finishing Included by Contractor. Premium Turnkey Service.",
-    contractorLabel: "WITH MATERIAL - TURNKEY - Full Package - TWM",
-    ratePerSqft: 0,
-    contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift"],
-    ownerGive: []
-  },
-  centring: {
-    id: "centring",
-    indiaName: "WITHOUT MATERIAL - Formwork + Labour Contract",
-    worldName: "FORMWORK + LABOUR (CWM) - Professional Contract",
-    ownerLabel: "Without Material - Material by Owner, Labour by Contractor",
-    ownerDesc: "Professional Contract. Owner Provides Construction Material, Contractor Provides Formwork, Scaffolding & Skilled Labour.",
-    contractorLabel: "WITHOUT MATERIAL - CENTRING + LABOUR - CWM",
-    ratePerSqft: 450,
-    contractorGive: ["ply","batta","jack","mistri","beldar","curing"],
-    ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"]
-  },
-  labour: {
-    id: "labour",
-    indiaName: "LABOUR ONLY - Skilled Labour Contract",
-    worldName: "LABOUR RATE CONTRACT (LOM) - Labour Only",
-    ownerLabel: "Labour Only - Complete Material by Owner",
-    ownerDesc: "Labour & Supervision Contract Only. Complete Quality Control by Owner. Ideal for Professional Projects.",
-    contractorLabel: "LABOUR ONLY - Skilled Labour Contract - LOM",
-    ratePerSqft: 280,
-    contractorGive: ["mistri","beldar"],
-    ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"]
-  },
-  custom: {
-    id: "custom",
-    indiaName: "ITEM RATE - Custom BOQ Contract",
-    worldName: "ITEM RATE / A LA CARTE (CSC) - Custom Selection",
-    ownerLabel: "Item Rate - Custom Selection - Flexible BOQ",
-    ownerDesc: "Flexible BOQ Based Contract. Select Individually Which Items Will Be Provided by Contractor.",
-    contractorLabel: "ITEM RATE - CUSTOM BOQ - CSC",
-    ratePerSqft: 350,
-    contractorGive: [],
-    ownerGive: []
-  }
+  full: { id: "full", indiaName: "WITH MATERIAL - TURNKEY - Complete Construction Package", worldName: "TURNKEY FULL SERVICE (TWM) - All Inclusive", ownerLabel: "With Material - Turnkey Project - Complete Solution", ownerDesc: "End-to-End Construction. All Materials + Labour + Finishing Included by Contractor. Premium Turnkey Service.", contractorLabel: "WITH MATERIAL - TURNKEY - Full Package - TWM", ratePerSqft: 0, contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift"], ownerGive: [] },
+  centring: { id: "centring", indiaName: "WITHOUT MATERIAL - Formwork + Labour Contract", worldName: "FORMWORK + LABOUR (CWM) - Professional Contract", ownerLabel: "Without Material - Material by Owner, Labour by Contractor", ownerDesc: "Professional Contract. Owner Provides Construction Material, Contractor Provides Formwork, Scaffolding & Skilled Labour.", contractorLabel: "WITHOUT MATERIAL - CENTRING + LABOUR - CWM", ratePerSqft: 450, contractorGive: ["ply","batta","jack","mistri","beldar","curing"], ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"] },
+  labour: { id: "labour", indiaName: "LABOUR ONLY - Skilled Labour Contract", worldName: "LABOUR RATE CONTRACT (LOM) - Labour Only", ownerLabel: "Labour Only - Complete Material by Owner", ownerDesc: "Labour & Supervision Contract Only. Complete Quality Control by Owner. Ideal for Professional Projects.", contractorLabel: "LABOUR ONLY - Skilled Labour Contract - LOM", ratePerSqft: 280, contractorGive: ["mistri","beldar"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
+  custom: { id: "custom", indiaName: "ITEM RATE - Custom BOQ Contract", worldName: "ITEM RATE / A LA CARTE (CSC) - Custom Selection", ownerLabel: "Item Rate - Custom Selection - Flexible BOQ", ownerDesc: "Flexible BOQ Based Contract. Select Individually Which Items Will Be Provided by Contractor.", contractorLabel: "ITEM RATE - CUSTOM BOQ - CSC", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
 };
 
 export default function Page(){
@@ -293,91 +252,157 @@ export default function Page(){
     const doc = new jsPDF();
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
+    const GOLD = [212,175,55];
+    const BLACK = [8,8,12];
     let y = 0;
+
+    // ========== PAGE 1 - LUXURY COVER - FIX #6, #8, #11, #12 ==========
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(0,0,W,H,'F');
+    doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setLineWidth(0.9);
+    doc.rect(6,6,W-12,H-12);
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(28);
+    doc.text("ABuildWise", W/2, 32, {align:'center'});
+    doc.setFontSize(10);
+    doc.setTextColor(200,200,200);
+    doc.setFont("helvetica","normal");
+    doc.text("PROFESSIONAL CONSTRUCTION OS - LUXURY EDITION", W/2, 39, {align:'center'});
+    doc.setFillColor(18,18,22);
+    doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setLineWidth(0.4);
+    doc.rect(14,48,W-28,78,'FD');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica","bold");
+    doc.text(`QUOTATION NO: AW-LUXURY-${geo.toUpperCase().slice(0,3)}-${tca} / ${new Date().getFullYear()} | DATE: ${new Date().toLocaleDateString('en-IN')} | VALID 15 DAYS`, 20, 58);
+    doc.setFont("helvetica","normal");
+    doc.text(`PROJECT: ${plotNum} SQFT Plot | ${Math.round(coverage*100)}% Coverage = ${groundPlate} SQFT | ${getPLabel(storeys)} | MODE: ${worldModeConfig.indiaName}`, 20, 65);
+    doc.text(`LOCATION: ${geo.toUpperCase()} LIVE | BUILT-UP: ${tca} SQFT | FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca}`, 20, 71);
+    doc.text(`BRANDS: Ultratech | Kamdhenu NXT | Polycab | Kajaria | Asian Paints - Premium Quality (FIX #12)`, 20, 77);
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(20,84,W-40,34,'F');
+    doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.rect(20,84,W-40,34);
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(18);
+    doc.setFont("helvetica","bold");
+    doc.text(`ESTIMATED COST: Rs.${ownerCharge.toLocaleString('en-IN')}`, W/2, 98, {align:'center'});
+    doc.setFontSize(7.5);
+    doc.setTextColor(160,160,160);
+    doc.text(`Effective: Rs.${effectiveRate}/SQFT | Labour+Centring: Rs.${worldContractorRate}/SQFT | Market: Rs.${standardRateShow}/SQFT | Cement Rs.${apiData.cementRate} Steel Rs.${apiData.steelRate}`, W/2, 106, {align:'center'});
+    doc.setTextColor(180,180,180);
+    doc.text(`Comparison (FIX #11): WITH MATERIAL ~ Rs.${(tca*standardRateShow).toLocaleString()} vs WITHOUT MATERIAL Rs.${ownerCharge.toLocaleString()} + Your Material`, W/2, 112, {align:'center'});
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(7);
+    doc.text("PAGE 01 / 03 - LUXURY PROJECT SUMMARY", W/2, H-10, {align:'center'});
+
+    // ========== PAGE 2 - LUXURY BOQ - FIX #1, #3, #5, #7 ==========
+    doc.addPage();
     doc.setFillColor(255,255,255);
     doc.rect(0,0,W,H,'F');
-    y=0;
-    doc.setFillColor(10,15,30);
-    doc.rect(0,0,W,20,'F');
-    doc.setTextColor(255,255,255);
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(0,0,W,15,'F');
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(11);
     doc.setFont("helvetica","bold");
-    doc.setFontSize(13);
-    doc.text(viewMode==="owner" ? `OWNER ESTIMATE - ${worldModeConfig.indiaName}` : `CONTRACTOR - ${worldModeConfig.contractorLabel}`, 10, 12);
+    doc.text(`DETAILED BOQ - ${tca} SQFT - ${worldModeConfig.indiaName.toUpperCase()} - LUXURY`, 10, 10);
+    y=20;
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(10,y,W-20,8,'F');
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(7);
+    doc.text("S.No",12,y+5); doc.text("ITEM - COMPANY",22,y+5); doc.text("QTY",82,y+5); doc.text("UNIT",97,y+5); doc.text("RATE",116,y+5); doc.text("AMOUNT",W-12,y+5,{align:'right'});
+    y+=10;
+    const pdfMats = viewMode==="owner" ? ownerMaterialsForDisplay : finalMaterials;
+    let sNo=1;
+    pdfMats.forEach((m:any)=>{
+      if(m.qty<=0 || m.amount<=0) return; // FIX #1 - LIFT 0 HIDE
+      if(y>270){ doc.addPage(); y=15; }
+      const unit = m.id==='cement'?'Bags':m.id==='steel'?'Kg':m.id==='bricks'?'Nos':m.id==='sand'?'CFT':m.id==='aggregate'?'CFT':m.id==='tiles'?'Sqft':m.id==='paint'?'Ltr':'Unit'; // FIX #3
+      doc.setFillColor(sNo%2===0?255:255, sNo%2===0?248:255, sNo%2===0?225:255);
+      doc.rect(10,y,W-20,7,'F');
+      doc.setTextColor(0,0,0);
+      doc.setFontSize(7);
+      doc.text(`${sNo}`,12,y+4.5); doc.text(`${m.id.toUpperCase()} - ${m.company}`,22,y+4.5); doc.text(`${m.qty}`,82,y+4.5); doc.text(unit,97,y+4.5); doc.text(`Rs.${m.rate}`,116,y+4.5); doc.text(`Rs.${m.amount.toLocaleString()}`,W-12,y+4.5,{align:'right'});
+      y+=8; sNo++;
+    });
+    y+=4;
+    doc.setFillColor(240,240,240);
+    doc.rect(10,y,W-20,6,'F');
+    doc.setTextColor(60,60,60);
     doc.setFontSize(8);
+    doc.text(`Sub Total: Rs.${worldOwnerCost.toLocaleString()}`, W-12, y+4, {align:'right'});
+    y+=7;
+    doc.setFillColor(245,245,245);
+    doc.rect(10,y,W-20,6,'F');
+    doc.text(`5% Contingency: Rs.${Math.round(worldOwnerCost*0.05).toLocaleString()} (FIX #7)`, W-12, y+4, {align:'right'});
+    y+=8;
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(10,y,W-20,10,'F');
+    doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.rect(10,y,W-20,10);
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(10);
+    doc.setFont("helvetica","bold");
+    doc.text(`GRAND LUXURY TOTAL: Rs.${ownerCharge.toLocaleString()} (FIX #7)`, W-12, y+6.5, {align:'right'});
+    doc.setTextColor(100,100,100);
+    doc.setFontSize(7);
     doc.setFont("helvetica","normal");
-    doc.setTextColor(0,229,255);
-    doc.text(`${geo.toUpperCase()} | ${tca} SQFT | ${viewMode.toUpperCase()} | MODE ${worldMode.toUpperCase()} | Cement Rs.${apiData.cementRate} Steel Rs.${apiData.steelRate}`, 10, 17);
-    y=24;
-    doc.setFillColor(240,245,255);
-    doc.setDrawColor(0,0,0);
-    doc.rect(10,y,W-20,32,'FD');
+    doc.text("PAGE 02 / 03 - DETAILED BOQ WITH UNITS - ZERO QTY HIDDEN", W/2, H-10, {align:'center'});
+
+    // ========== PAGE 3 - SCOPE + PAYMENT + TERMS - FIX #4, #6, #9, #10 ==========
+    doc.addPage();
+    doc.setFillColor(255,255,255);
+    doc.rect(0,0,W,H,'F');
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(0,0,W,15,'F');
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(11);
+    doc.setFont("helvetica","bold");
+    doc.text("SCOPE | PAYMENT | TERMS - LUXURY CLOSING - PRO", 10, 10);
+    y=22;
     doc.setTextColor(0,0,0);
     doc.setFont("helvetica","bold");
     doc.setFontSize(9);
-    doc.text(`PLOT: ${plotNum} SQFT | COVERAGE: ${Math.round(coverage*100)}% = ${groundPlate} SQFT | TOTAL: ${tca} SQFT - ${getPLabel(storeys)}`, 12, y+6);
-    doc.setFontSize(7);
+    doc.text("✓ OWNER SCOPE vs CONTRACTOR SCOPE (FIX #4):", 10, y);
+    y+=7;
     doc.setFont("helvetica","normal");
-    doc.text(`FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} SQFT | MODE: ${worldModeConfig.indiaName}`, 12, y+12);
-    doc.setFillColor(viewMode==="owner"?0:255, viewMode==="owner"?229:200, 0);
-    doc.rect(10,y+16,W-20,10,'F');
-    doc.setTextColor(0,0,0);
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(10);
-    doc.text(viewMode==="owner" ? `ESTIMATED COST: Rs.${ownerCharge.toLocaleString('en-IN')} | MODE: ${worldModeConfig.indiaName}` : `CHARGE: Rs.${contractorCharge.toLocaleString('en-IN')} | COST: Rs.${contractorCost.toLocaleString('en-IN')} | PROFIT: Rs.${profit.toLocaleString('en-IN')} (${profitPer}%)`, 12, y+22.5);
-    y+=40;
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(11);
-    doc.text(viewMode==="owner" ? `MATERIALS - ${worldModeConfig.indiaName}` : `CONTRACTOR - ${worldModeConfig.contractorLabel} + AGREEMENT`,10,y);
-    y+=6;
-    doc.setFillColor(245,245,255);
-    doc.setDrawColor(100,100,100);
-    doc.rect(10,y,W-20,18,'FD');
     doc.setFontSize(7.5);
+    doc.text(`OWNER WILL PROVIDE: ${worldModeConfig.ownerGive.join(" | ") || "Payment Only (Turnkey)"}`, 10, y);
+    y+=5;
+    doc.text(`CONTRACTOR WILL PROVIDE: ${worldModeConfig.contractorGive.join(" | ") || Object.keys(customTick).filter(k=>customTick[k]==="contractor").join(", ")}`, 10, y);
+    y+=10;
     doc.setFont("helvetica","bold");
-    doc.text(`OWNER SCOPE: ${worldModeConfig.ownerGive.join(", ") || (worldMode==="full" ? "Only Payment" : "CUSTOM")} `,12,y+5);
-    doc.text(`CONTRACTOR SCOPE: ${worldModeConfig.contractorGive.join(", ") || Object.keys(customTick).filter(k=>customTick[k]==="contractor").join(", ")}`,12,y+10);
+    doc.setFontSize(9);
+    doc.text("PAYMENT TIMELINE (FIX #10 - SALE CLOSE):", 10, y);
+    y+=7;
     doc.setFont("helvetica","normal");
-    doc.text(`AGREEMENT: Rate Rs.${worldContractorRate}/SQFT | TCA ${tca} | Lift Owner? ${worldModeConfig.ownerGive.includes("lift") ? "YES" : "CONTRACTOR"}`,12,y+15);
-    y+=22;
-    doc.setFillColor(0,0,0);
-    doc.rect(10,y,W-20,7,'F');
-    doc.setTextColor(255,255,255);
     doc.setFontSize(8);
-    doc.text("ITEM - COMPANY - QTY @ RATE",12,y+4.8);
-    doc.text("AMOUNT",W-12,y+4.8,{align:'right'});
-    y+=9;
-    const pdfMats = viewMode==="owner" ? ownerMaterialsForDisplay : finalMaterials;
-    pdfMats.forEach((m:any, idx:number)=>{
-      const leftFull = `${m.id.toUpperCase()} - ${m.company} - ${m.qty} @ Rs.${m.rate}`;
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(8.5);
-      const leftLines = doc.splitTextToSize(leftFull, 125);
-      const lineHeight = 4.5;
-      const blockH = Math.max(leftLines.length * lineHeight + 4, 9);
-      if(y + blockH > 280){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=10; }
-      if(idx % 2 === 0) doc.setFillColor(255,255,255); else doc.setFillColor(235,240,250);
-      doc.setDrawColor(150,150,150);
-      doc.rect(10,y,W-20,blockH,'FD');
-      doc.setTextColor(0,0,0);
-      doc.text(leftLines, 12, y+5);
-      doc.setFont("helvetica","bold");
-      doc.text(`Rs.${m.amount.toLocaleString('en-IN')}`,W-12,y+5,{align:'right'});
-      y+=blockH+1;
-    });
-    y+=4;
-    if(y>270){ doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F'); y=15; }
-    doc.setFillColor(viewMode==="owner"? 34:255, viewMode==="owner"?211:193, viewMode==="owner"?238:7);
-    doc.setDrawColor(0,0,0);
-    doc.rect(10,y,W-20,14,'FD');
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(12);
+    doc.text("● 10% Advance on Agreement  →  ● 40% Structure Complete  →  ● 30% Finishing  →  ● 20% Handover", 10, y);
+    y+=10;
     doc.setFont("helvetica","bold");
-    if(viewMode==="owner"){
-      doc.text(`FINAL ESTIMATE: Rs.${ownerCharge.toLocaleString('en-IN')} | ${tca} SQFT x ${worldModeConfig.indiaName}`,12,y+8.5);
-    } else {
-      doc.text(`PROFIT: Rs.${profit.toLocaleString('en-IN')} | CHARGE Rs.${contractorCharge.toLocaleString('en-IN')} - COST Rs.${contractorCost.toLocaleString('en-IN')} | ${worldModeConfig.contractorLabel}`,12,y+8.5);
-    }
-    doc.save(`${geo}_${tca}_${viewMode}_${worldMode}_ABuildWise_PRO.pdf`);
+    doc.text("TERMS & CONDITIONS (FIX #6, #9):", 10, y);
+    y+=6;
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(7);
+    doc.text(`1. Rates as per LIVE: Cement Rs.${apiData.cementRate}/Bag Steel Rs.${apiData.steelRate}/Kg | 2. GST extra as applicable (FIX #7) | 3. Validity 15 Days`, 10, y);
+    y+=4;
+    doc.text(`4. Wastage 5% included | 5. Labour Rate Rs.${worldContractorRate}/SQFT for ${worldModeConfig.indiaName} | 6. Premium Brands: Ultratech/Kamdhenu/Polycab/Kajaria`, 10, y);
+    y=H-28;
+    doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.rect(0,y,W,28,'F');
+    doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+    doc.setFontSize(8);
+    doc.setFont("helvetica","bold");
+    doc.text("ABuildWise PRO - Luxury Edition | www.abuildwise.com | Premium Builder OS | Professional Quotation", W/2, y+9, {align:'center'});
+    doc.setFontSize(6.5);
+    doc.setTextColor(150,150,150);
+    doc.setFont("helvetica","normal");
+    doc.text(`Quotation: AW-LUXURY-${geo.toUpperCase()}-${tca} | ${tca} SQFT | ${worldModeConfig.indiaName} | Page 03 / 03 - 12 KAMI FIXED - LUXURY`, W/2, y+15, {align:'center'});
+    doc.save(`LUXURY_3PAGE_${geo}_${tca}_${worldMode}_12KAMI_FIXED_PREMIUM.pdf`);
   };
 
   return (
@@ -495,7 +520,7 @@ export default function Page(){
             {viewMode==="owner" && worldMode==="full" && (<div className="text-center py-10 text-white text-[12px] font-bold">TURNKEY Package - Complete Scope by Contractor - Final Estimate Rs.{ownerCharge.toLocaleString()}</div>)}
             </div>
             {edit && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]"><div className="bg-[#1e293b] border border-white/20 rounded-[16px] p-4 w-full max-w-[360px]"><h3 className="font-bold text-[12px] mb-3">EDIT - {finalMaterials[edit.idx]?.id.toUpperCase()} - Professional</h3><div className="space-y-3"><div><div className="text-[9px] opacity-60">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-3 py-2 text-[12px]" /></div><div><div className="text-[9px] opacity-60">Company</div><select value={edit.company} onChange={e=>setEdit({...edit, company: e.target.value})} className="w-full bg-black/60 border border-white/10 rounded-full px-3 py-3 text-[11px] font-bold">{(COMPANY_MASTER[edit.id] || [{name:edit.company, mult:1, label:"LIVE"}]).map((c:any)=>(<option key={c.name} value={c.name}>{c.name} - {c.label}</option>))}</select></div><div><div className="text-[9px] opacity-60">Rate - Live Market</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-3 py-2 text-[12px] font-bold" /></div></div><div className="flex gap-2 mt-4"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-2.5 text-[11px]">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-white text-black font-bold rounded-full py-2.5 text-[11px]">APPLY</button></div></div></div>)}
-            <div className="grid grid-cols-2 gap-2 mt-3"><button onClick={handleWhatsApp} className="bg-green-600 text-white font-bold py-2.5 rounded-full text-[11px]">WhatsApp - {worldModeConfig.indiaName}</button><button onClick={handlePDF} className="bg-white text-black font-bold py-2.5 rounded-full text-[11px]">PDF - {viewMode==="owner"?"OWNER":"CONTRACTOR"} - {worldMode.toUpperCase()}</button></div>
+            <div className="grid grid-cols-2 gap-2 mt-3"><button onClick={handleWhatsApp} className="bg-green-600 text-white font-bold py-2.5 rounded-full text-[11px]">WhatsApp - {worldModeConfig.indiaName}</button><button onClick={handlePDF} className="bg-white text-black font-bold py-2.5 rounded-full text-[11px]">PDF - {viewMode==="owner"?"OWNER":"CONTRACTOR"} - {worldMode.toUpperCase()} - 3 PAGE PREMIUM</button></div>
             <div className="mt-2 text-[11px] bg-black/30 p-3 rounded-xl">
               {viewMode==="owner" ? (
                 <div className="flex justify-between font-bold text-white"><span>Final Estimate - {worldModeConfig.indiaName}</span><span>Rs.{ownerCharge.toLocaleString()}</span></div>
@@ -506,7 +531,7 @@ export default function Page(){
                   <div className="flex justify-between font-black text-white text-[13px] mt-1 border-t border-white/10 pt-1"><span>PROFIT {worldMode.toUpperCase()}</span><span>Rs.{profit.toLocaleString()} ({profitPer}%)</span></div>
                 </>
               )}
-              <div className="text-[8px] opacity-50 mt-1">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE | MODE {worldMode.toUpperCase()} | {worldModeConfig.worldName}</div>
+              <div className="text-[8px] opacity-50 mt-1">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} | Cement Rs.{apiData.cementRate} LIVE | Steel Rs.{apiData.steelRate} LIVE | MODE {worldMode.toUpperCase()} | {worldModeConfig.worldName} | 3 PAGE PREMIUM LUXURY</div>
             </div>
             <div className="h-20"></div>
           </div>
