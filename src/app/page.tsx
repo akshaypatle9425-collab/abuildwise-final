@@ -585,7 +585,18 @@ export default function Page(){
               <div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-[#d4af37] text-black font-black rounded-full py-3 text-[11px]">APPLY • WORLD • 0 CUT</button></div>
             </div>
           </div>
-        )}
+        )}TOP: Location Nagpur + Live GPS Map (21.1458° N, 79.0882° E)
+     + Fake map illustration
+
+MIDDLE: Profit % + GST Slider + Basic 1640 / Standard 2000 / Premium 2760
+
+MIDDLE 2: M-Sand 45 / Agg 38 / Wastage / Contingency Rs.32000 sab ek jagah
+
+NICHE: Rates Section - Ultratech 359, Kamdhenu 68, P1 Ground Only
+
+LAST: Step 1-2-3 progress ek hi page me
+
+Tagline: WORLD PRO - 1 page me full combo, 0 cut, client bharosa double!
       </div>
     </div>
   );
