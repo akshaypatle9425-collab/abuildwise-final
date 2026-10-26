@@ -1,6 +1,6 @@
 "use client";
 // @ts-nocheck
-// ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX - 0 WORD CUT - WORLD LEVEL V3 FINAL - 23 ITEMS FIXED + QR FIXED
+// ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX - 0 WORD CUT - WORLD LEVEL V3 FINAL - 23 ITEMS FIXED + QR FIXED - 3 KAMI FIXED
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -113,7 +113,7 @@ export default function Page(){
   const [steelCompany,setSteelCompany]=useState("kamdhenu_nxt");
   const [cementCompany,setCementCompany]=useState("ultratech");
   const [liftCompany,setLiftCompany]=useState("otis");
-  const [apiData,setApiData]=useState<any>({ ratePerSqft: 2000, coverage:0.64, materials:[], logic:"LIVE", cementRate: 356, steelRate: 65, transportExtra: 0 });
+  const [apiData,setApiData]=useState<any>({ ratePerSqft: 2000, coverage:0.64, materials:[], logic:"LIVE", cementRate: 359, steelRate: 68, transportExtra: 0 });
   const [manualBuiltUp,setManualBuiltUp]=useState("1200");
   const [isManual,setIsManual]=useState(false);
   const [edit, setEdit] = useState<EditState>(null);
@@ -121,7 +121,7 @@ export default function Page(){
   const [currentLatLng, setCurrentLatLng] = useState<{lat:number,lng:number}|null>(null);
   const [boxEditModal, setBoxEditModal] = useState<BoxEditModal>(null);
   const [manualCoverageAdd, setManualCoverageAdd] = useState<number|null>(null);
-  const [customPkgRatesAdd, setCustomPkgRatesAdd] = useState<{basic:number|null, standard:number|null, premium:number|null}>({basic:null, standard:null, premium:null});
+  const [customPkgRatesAdd, setCustomPkgRatesAdd] = useState<{basic:number|null, standard:number|null, premium:number|null}>({basic:1640, standard:2000, premium:2760});
   const [dailyFluc, setDailyFluc] = useState(1);
   const [viewMode, setViewMode] = useState<"owner"|"contractor">("owner");
   const [worldMode, setWorldMode] = useState<"full"|"centring"|"labour"|"custom">("centring");
@@ -194,6 +194,9 @@ export default function Page(){
       data.groundFloorPlate = Math.round(parseInt(plotArea)*manualCoverageAdd);
       data.builtUpArea = Math.round(parseInt(plotArea)*manualCoverageAdd)*parseInt(storeys);
     }
+    // FIX 3 KAMI - LOCK 359/68 - 0 WORD CUT
+    data.cementRate = 359;
+    data.steelRate = 68;
     setApiData(data);
     if(!isManual) setManualBuiltUp(String(data.builtUpArea || 1200));
   };
@@ -328,7 +331,7 @@ export default function Page(){
     doc.setFont("helvetica","normal");
     doc.text(`PROJECT: ${plotNum} SQFT Plot | ${Math.round(coverage*100)}% Coverage = ${groundPlate} SQFT | ${getPLabel(storeys)} | MODE: ${worldModeConfig.indiaName} | PKG ${pkg.toUpperCase()}`, 20, 65);
     doc.text(`LOCATION: ${geo.toUpperCase()} LIVE | BUILT-UP: ${tca} SQFT | FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} | GST ${gstOn?'18% INCLUDED':'EXTRA'}`, 20, 71);
-    doc.text(`BRANDS: Ultratech Rs.356/Bag | Kamdhenu NXT Rs.65/Kg | M-Sand Rs.45/CFT | Aggregate Rs.38/CFT | Polycab | Kajaria | Asian Paints | PROFIT ${profitPercent}% Rs.${profit.toLocaleString()} | 23 ITEMS`, 20, 77);
+    doc.text(`BRANDS: Ultratech Rs.359/Bag | Kamdhenu NXT Rs.68/Kg | M-Sand Rs.45/CFT | Aggregate Rs.38/CFT | Polycab | Kajaria | Asian Paints | PROFIT ${profitPercent}% Rs.${profit.toLocaleString()} | 23 ITEMS`, 20, 77);
     doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
     doc.rect(20,84,W-40,34,'F');
     doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
