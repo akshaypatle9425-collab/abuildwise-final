@@ -1,6 +1,6 @@
 "use client";
 // @ts-nocheck
-// ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX
+// ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX - 0 WORD CUT
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -124,9 +124,9 @@ export default function Page(){
   const [dailyFluc, setDailyFluc] = useState(1);
   const [viewMode, setViewMode] = useState<"owner"|"contractor">("owner");
   const [worldMode, setWorldMode] = useState<"full"|"centring"|"labour"|"custom">("centring");
-  const [customTick, setCustomTick] = useState<Record<string,"owner"|"contractor">>({});
+  const [customTick, setCustomTick] = useState<any>({});
   const [profitPercent, setProfitPercent] = useState(18);
-  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleString("en-IN"));
+  const [lastUpdate, setLastUpdate] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [qrShow, setQrShow] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -135,6 +135,7 @@ export default function Page(){
   const RATES_BY_PACKAGE = { basic:{mult:0.82, label:"-18% Economy"}, standard:{mult:1, label:"Market Standard"}, premium:{mult:1.38, label:"+38% Premium"} };
 
   useEffect(()=>{
+    setLastUpdate(new Date().toLocaleString("en-IN"));
     const day = new Date().getDate();
     const fluc = 1 + ((day % 7) - 3) * 0.006;
     setDailyFluc(fluc);
