@@ -172,7 +172,6 @@ export default function Page(){
     if(data.materials){
       data.materials = data.materials.map((m:any)=>{
         let newRate = m.rate;
-        // WORLD LEVEL FIX V3 - LOCK 45/38/25
         if(m.id==="sand") newRate = 45;
         else if(m.id==="aggregate") newRate = 38;
         else if(m.id==="contingency") newRate = 25;
@@ -405,7 +404,6 @@ export default function Page(){
     doc.setFontSize(10);
     doc.setFont("helvetica","bold");
     doc.text(`GRAND TOTAL: Rs.${ownerCharge.toLocaleString()} ${gstOn?'(With GST)':'(GST Extra)'} - WORLD LEVEL VERIFIED 23 ITEMS - 0 WORD CUT`, W-12, y+6.5, {align:'right'});
-    // PAGE 3 QR
     doc.addPage();
     doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
     doc.rect(0,0,W,H,'F');
@@ -419,7 +417,6 @@ export default function Page(){
     doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setLineWidth(0.6);
     doc.rect(W/2-35, 55, 70, 70);
-    // QR IMAGE EMBED - FIX FOR EMPTY BOX
     try {
       const qrData = `ABuildWise-WORLD-23ITEMS-${geo}-${tca}-${ownerCharge}-${lastUpdate}-PROFIT${profitPercent}%`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
@@ -550,7 +547,6 @@ export default function Page(){
                 <div className="text-black"><div className="font-black text-[11px] tracking-wider">QR VERIFIED • WORLD LEVEL • 23 ITEMS • 0 WORD CUT</div><div className="text-[9px] font-bold mt-1">{geo.toUpperCase()} • {tca} SQFT • Rs.{ownerCharge.toLocaleString()} • Profit {profitPercent}% Rs.{profit.toLocaleString()} • GST {gstOn?'ON':'OFF'}</div><div className="text-[7px] mt-1 opacity-60">M-Sand 45 • Agg 38 • Contingency 23rd • Wastage Included • {lastUpdate} • 0 CUT</div></div>
               </div>
             )}
-            {/* WORLD LEVEL V3 - 0 WORD CUT LIST - FIXED */}
             <div className="max-h-[58vh] overflow-y-auto rounded-xl bg-black/30 p-2 border border-white/5 backdrop-blur scrollbar-thin">{(viewMode==="owner" ? filteredOwnerForDisplay : filteredFinalMaterials).map((m:any, idx:number)=>{
               const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id);
               const unit = m.id==='cement'?'Bags':m.id==='steel'?'Kg':m.id==='bricks'?'Nos':m.id==='sand'?'CFT':m.id==='aggregate'?'CFT':m.id==='tiles'?'Sqft':m.id==='paint'?'Ltr':m.id==='contingency'?'Days':'Unit';
