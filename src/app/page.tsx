@@ -2,6 +2,7 @@
 // @ts-nocheck
 // ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX - 0 WORD CUT - WORLD LEVEL V3 FINAL - 23 ITEMS FIXED + QR FIXED - 3 KAMI FIXED
 // FIX APPLIED: LIVE ONLY RATE - NO DOUBLE PRINT - 357 LIVE 359 -> 359 ONLY - 67 LIVE 68 -> 68 ONLY - WORLD FINAL
+// FIX APPLIED 2: PDF DOUBLE LINE OVERLAP FIX - NO DOUBLE COMPANY - SINGLE LINE ONLY
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -373,13 +374,31 @@ export default function Page(){
     let sNo=1;
     pdfMats.forEach((m:any)=>{
       if(y>255){ doc.addPage(); y=15; }
-      const cleanName = (m.name || "").replace(/^\d+\.?\s*/,'');
+      // FIX: PDF DOUBLE LINE OVERLAP - SINGLE LINE ONLY - 0 WORD CUT - WORLD FINAL
+      let rawName = (m.name || "").toString();
+      rawName = rawName.replace(/^\d+\.?\s*/,''); // remove leading numbers
+      // Take only first part before special char to avoid double company
+      if(rawName.includes('—')) rawName = rawName.split('—')[0];
+      if(rawName.includes('-')) {
+        // Keep only ID part clean
+        const parts = rawName.split('-');
+        if(parts.length > 2) rawName = parts[0] + ' - ' + parts[1];
+      }
+      rawName = rawName.replace(/CEMENT.*/i, 'CEMENT').replace(/STEEL.*/i, 'STEEL').replace(/BRICKS.*/i, 'BRICKS').trim();
+      // Final clean single line: ID - COMPANY (NO DOUBLE)
+      const cleanDisplay = `${m.id.toUpperCase()} - ${m.company}`;
+      const finalDisplay = cleanDisplay.substring(0, 50);
       const unit = m.id==='cement'?'Bags':m.id==='steel'?'Kg':m.id==='bricks'?'Nos':m.id==='sand'?'CFT':m.id==='aggregate'?'CFT':m.id==='tiles'?'Sqft':m.id==='paint'?'Ltr':m.id==='contingency'?'Days':'Unit';
       doc.setFillColor(sNo%2===0?255:255, sNo%2===0?248:255, sNo%2===0?225:255);
       doc.rect(10,y,W-20,7,'F');
       doc.setTextColor(0,0,0);
-      doc.setFontSize(7);
-      doc.text(`${sNo}`,12,y+4.5); doc.text(`${m.id.toUpperCase()} - ${cleanName} - ${m.company}`,22,y+4.5); doc.text(`${m.qty}`,82,y+4.5); doc.text(unit,97,y+4.5); doc.text(`Rs.${m.rate}/${unit}`,116,y+4.5); doc.text(`Rs.${m.amount.toLocaleString()}`,W-12,y+4.5,{align:'right'});
+      doc.setFontSize(6.8);
+      doc.text(`${sNo}`,12,y+4.5); 
+      doc.text(`${finalDisplay}`,22,y+4.5); 
+      doc.text(`${m.qty}`,82,y+4.5); 
+      doc.text(unit,97,y+4.5); 
+      doc.text(`Rs.${m.rate}/${unit}`,116,y+4.5); 
+      doc.text(`Rs.${m.amount.toLocaleString()}`,W-12,y+4.5,{align:'right'});
       y+=8; sNo++;
     });
     y+=2;
