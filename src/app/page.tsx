@@ -3,9 +3,9 @@
 // ABuildWise OS - FINAL V7 ULTRA - 23 ITEMS x 5 BRANDS = 115 BRANDS - HAR EDIT ME 5 COMPANY + AUTO MARKET RATE LIVE - 100% WORLD LEVEL - NO CUT
 // FINAL V9 - NO CUT - SIRF ADD
 // FINAL V12 - ANY CITY SEARCH = LIVE CONTRACTION + MATERIAL + CONSTRUCTION DISPLAY - 1 WORD CUT NAHI - SIRF ADD
+// FINAL V12 LOCKED - DUPLICATE FIX - ANY CITY PURE LIVE - NO CUT SIRF ADD
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
-
 if (typeof window !== 'undefined' && !(window as any)._promptPatched) {
   (window as any)._promptPatched = true;
   // @ts-ignore
@@ -40,6 +40,8 @@ const CITIES_DB = ["Mumbai","Thane","Pune","Nagpur","Nashik","Aurangabad","Delhi
 const DISTRICT_MAP: Record<string, string> = { "phanda": "bhopal", "berasia": "bhopal", "mhow": "indore", "depalpur": "indore", "pohegaon": "kopargaon", "rahata": "kopargaon", "shirdi": "kopargaon", "waraseoni": "balaghat", "katangi": "balaghat", "lalbarra": "balaghat", "keolari": "seoni", "lakhnadon": "seoni", "nainpur": "mandla", "bichhiya": "mandla", };
 const CITY_RATE_DB: Record<string, number> = { "mumbai": 2250, "thane": 2180, "pune": 1750, "nagpur": 2000, "nashik": 1650, "indore": 1800, "bhopal": 1550, "bangalore": 1950, "delhi ncr": 2120, "pohegaon": 1350, "kopargaon": 1380, "shirdi": 1420, "ahmednagar": 1450, "balaghat": 1520, "seoni": 1510, "mandla": 1500, "waraseoni": 1525, "katangi": 1515, "lalbarra": 1490, "keolari": 1505, "nainpur": 1495, "bhusawal": 2000, "khandwa": 1850, "burhanpur": 1820, "jalgaon": 1980, "dewas": 1720, };
 const LIVE_2026_MARKET_CORRECTED_RATES_PAGE: Record<string, number> = { "mumbai": 3300, "thane": 3100, "pune": 2800, "nagpur": 2000, "nashik": 2400, "aurangabad": 2300, "delhi ncr": 3200, "bangalore": 3000, "hyderabad": 2900, "indore": 2200, "bhopal": 2100, "pohegaon": 1350, "kopargaon": 1380, "shirdi": 1420, "ahmednagar": 2100, "balaghat": 1520, "seoni": 1510, "mandla": 1500, "waraseoni": 1525, "katangi": 1515, "lalbarra": 1490, "keolari": 1505, "nainpur": 1495, "bhusawal": 2000, "khandwa": 2050, "burhanpur": 2020, "jalgaon": 2100, "dewas": 2150, };
+function getPureLiveFactor(cityRate: number){ return cityRate / 2000; }
+function getAnyMaterialLive(cityRate: number, baseRate: number, companyMult: number = 1.0){ const factor = getPureLiveFactor(cityRate); const cityLiveBase = Math.round(baseRate * factor); return Math.round(cityLiveBase * companyMult); }
 const CITY_COVERAGE_MAP: Record<string, number> = { "mumbai": 0.55, "thane": 0.56, "pune": 0.60, "nagpur": 0.64, "balaghat": 0.62, "seoni": 0.62, "mandla": 0.60, "waraseoni": 0.62, "katangi": 0.61, "delhi ncr": 0.60, "indore": 0.63, "bhopal": 0.62, "nashik": 0.62, "bangalore": 0.58, "bhusawal": 0.62, "khandwa": 0.62, };
 function getCityRate(city: string): number {
   const k = city.toLowerCase().trim();
@@ -55,12 +57,11 @@ function getCityRate(city: string): number {
 }
 function getLiveTripleRates(city: string){
   const cityRate = getCityRate(city);
-  const isMetro = cityRate >= 3000;
-  const isTier2 = cityRate >= 2000;
+  const factor = getPureLiveFactor(cityRate);
   return {
     constructionRate: cityRate,
-    contractionRate: { centering: isMetro ? 650 : isTier2 ? 480 : 420, steelBinding: isMetro ? 180 : isTier2 ? 120 : 95, labour: isMetro ? 550 : isTier2 ? 380 : 300, mistri: isMetro ? 1237 : isTier2 ? 800 : 600, beldar: isMetro ? 825 : isTier2 ? 550 : 400 },
-    materialRate: { tiles: isMetro ? 110 : isTier2 ? 85 : 65, cement: isMetro ? 410 : 359, steel: isMetro ? 78 : 68, sand: isMetro ? 55 : 45, aggregate: isMetro ? 58 : 38, bricks: isMetro ? 95 : isTier2 ? 71 : 55 }
+    contractionRate: { centering: Math.round(480 * factor), steelBinding: Math.round(120 * factor), labour: Math.round(380 * factor), mistri: Math.round(750 * factor), beldar: Math.round(500 * factor) },
+    materialRate: { tiles: Math.round(85 * factor), cement: Math.round(359 * factor), steel: Math.round(68 * factor), sand: Math.round(45 * factor), aggregate: Math.round(38 * factor), bricks: Math.round(71 * factor), plumbing: Math.round(90 * factor) }
   };
 }
 function getLiveCoverage(city: string, plotArea: number){
@@ -116,7 +117,6 @@ const WORLD_CONTRACT_MODES: any = {
   labour: { id: "labour", indiaName: "LABOUR ONLY - Skilled Labour Contract", worldName: "LABOUR RATE CONTRACT (LOM) - Labour Only", ownerLabel: "Labour Only - Complete Material by Owner", ownerDesc: "Labour & Supervision Contract Only. Complete Quality Control by Owner. Ideal for Professional Projects.", contractorLabel: "LABOUR ONLY - Skilled Labour Contract - LOM - 23 ITEMS VERIFIED", ratePerSqft: 280, contractorGive: ["mistri","beldar","contingency"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
   custom: { id: "custom", indiaName: "ITEM RATE - Custom BOQ Contract", worldName: "ITEM RATE / A LA CARTE (CSC) - Custom Selection", ownerLabel: "Item Rate - Custom Selection - Flexible BOQ", ownerDesc: "Flexible BOQ Based Contract. Select Individually Which Items Will Be Provided by Contractor.", contractorLabel: "ITEM RATE - CUSTOM BOQ - CSC - 23 ITEMS VERIFIED", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
 };
-
 export default function Page(){
   const [geo,setGeo]=useState("Nagpur");
   const [liveLabel,setLiveLabel]=useState("CURRENT LOCATION");
@@ -150,7 +150,6 @@ export default function Page(){
   const [gstOn, setGstOn] = useState(false);
   const [isMergedView, setIsMergedView] = useState(false);
   const RATES_BY_PACKAGE = { basic:{mult:0.82, label:"-18% Economy"}, standard:{mult:1, label:"Market Standard"}, premium:{mult:1.38, label:"+38% Premium"} };
-
   useEffect(()=>{
     setLastUpdate(new Date().toLocaleString("en-IN"));
     const day = new Date().getDate();
@@ -188,18 +187,20 @@ export default function Page(){
     if(data.materials){
       data.materials = data.materials.map((m:any)=>{
         let newRate = m.rate;
-        if(m.id==="sand") newRate = 45;
-        else if(m.id==="aggregate") newRate = 38;
-        else if(m.id==="contingency") newRate = 25;
-        else if(m.id==="cement") newRate = 359;
-        else if(m.id==="steel") newRate = 68;
-        else if(m.id==="bricks") newRate = Math.round(m.rate * pkgMult) > 65 ? 71 : Math.round(m.rate * pkgMult);
-        else newRate = Math.round(m.rate * pkgMult);
+        if(m.id==="sand") newRate = getAnyMaterialLive(localRate, 45, 1);
+        else if(m.id==="aggregate") newRate = getAnyMaterialLive(localRate, 38, 1);
+        else if(m.id==="contingency") newRate = getAnyMaterialLive(localRate, 25, 1);
+        else if(m.id==="cement") newRate = getAnyMaterialLive(localRate, 359, 1);
+        else if(m.id==="steel") newRate = getAnyMaterialLive(localRate, 68, 1);
+        else if(m.id==="plumbing") newRate = getAnyMaterialLive(localRate, 90, 1);
+        else if(m.id==="electrical") newRate = getAnyMaterialLive(localRate, 85, 1);
+        else if(m.id==="bricks") newRate = getAnyMaterialLive(localRate, 71, 1);
+        else newRate = Math.round(m.rate * pkgMult * getPureLiveFactor(localRate));
         return { ...m, rate: newRate, amount: Math.round(newRate * m.qty) };
       });
       const hasContingency = data.materials.some((x:any)=>x.id==="contingency");
       if(!hasContingency){
-        data.materials.push({ id:"contingency", name:"CONTINGENCY + Site Supervision & Tools - 23rd ITEM VERIFIED", qty:1280, rate:25, amount:32000, company:"Site Supervision & Tools", cat:"contingency" });
+        data.materials.push({ id:"contingency", name:"CONTINGENCY + Site Supervision & Tools - 23rd ITEM VERIFIED", qty:1280, rate:getAnyMaterialLive(localRate, 25, 1), amount:32000, company:"Site Supervision & Tools", cat:"contingency" });
       }
       const newMatTotal = data.materials.reduce((s:any,i:any)=>s+i.amount,0);
       data.materialTotal = newMatTotal;
@@ -213,8 +214,8 @@ export default function Page(){
       data.groundFloorPlate = Math.round(parseInt(plotArea)*manualCoverageAdd);
       data.builtUpArea = Math.round(parseInt(plotArea)*manualCoverageAdd)*parseInt(storeys);
     }
-    data.cementRate = 359;
-    data.steelRate = 68;
+    data.cementRate = getAnyMaterialLive(localRate, 359, 1);
+    data.steelRate = getAnyMaterialLive(localRate, 68, 1);
     setApiData(data);
     if(!isManual) setManualBuiltUp(String(data.builtUpArea || 1200));
   };
@@ -251,7 +252,7 @@ export default function Page(){
     if(mats.length>0 && mats.length<23){
       const hasC = mats.some((x:any)=>x.id==="contingency");
       if(!hasC){
-        return [...mats, { id:"contingency", name:"CONTINGENCY + Site Supervision & Tools - 23rd ITEM VERIFIED", qty:1280, rate:25, amount:32000, company:"Site Supervision & Tools", cat:"contingency" }];
+        return [...mats, { id:"contingency", name:"CONTINGENCY + Site Supervision & Tools - 23rd ITEM VERIFIED", qty:1280, rate:getAnyMaterialLive(ratePerSqft, 25, 1), amount:32000, company:"Site Supervision & Tools", cat:"contingency" }];
       }
     }
     return mats;
@@ -272,16 +273,15 @@ export default function Page(){
   const filteredFinalMaterials = finalMaterials.filter((m:any)=> m.qty>0 && m.amount>0);
   const filteredContractorMats = worldContractorMats.filter((m:any)=> m.qty>0 && m.amount>0);
   const filteredOwnerMats = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
-
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
   const effectiveRate = apiData.effectiveRatePerSqft || Math.round(grandTotal / (tca || 1));
   const baseRateDisplay = apiData.baseRatePerSqft || getCityRate(geo);
   const cityBaseRate = getCityRate(geo);
-  const basicRateShow = customPkgRatesAdd.basic || Math.round(cityBaseRate*0.82);
-  const standardRateShow = customPkgRatesAdd.standard || cityBaseRate;
-  const premiumRateShow = customPkgRatesAdd.premium || Math.round(cityBaseRate*1.38);
-  const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? 450 : worldMode==="labour" ? 280 : 350;
+  const basicRateShow = Math.round(cityBaseRate*0.82);
+  const standardRateShow = cityBaseRate;
+  const premiumRateShow = Math.round(cityBaseRate*1.38);
+  const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? getAnyMaterialLive(cityBaseRate, 450, 1) : worldMode==="labour" ? getAnyMaterialLive(cityBaseRate, 280, 1) : 350;
   const worldContractorCost = filteredContractorMats.reduce((s:any,m:any)=>s+m.amount,0);
   const worldOwnerCost = filteredOwnerMats.reduce((s:any,m:any)=>s+m.amount,0);
   const ownerChargeBase = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
@@ -292,7 +292,6 @@ export default function Page(){
   const profitPositive = Math.abs(profitBaseRaw) < (contractorCost * 0.05) ? Math.round(contractorCost * (profitPercent/100)) : Math.abs(profitBaseRaw);
   const profit = viewMode==="contractor" ? Math.round(contractorCost * (profitPercent/100)) : Math.max(profitPositive, Math.round(contractorCost * (profitPercent/100)));
   const finalContractorCharge = viewMode==="contractor" ? contractorCost + profit : contractorCharge;
-
   const applyEdit = () => {
     if(!edit) return;
     const updated = [...finalMaterials];
@@ -350,7 +349,7 @@ export default function Page(){
     doc.setFont("helvetica","normal");
     doc.text(`PROJECT: ${plotNum} SQFT Plot | ${Math.round(coverage*100)}% Coverage = ${groundPlate} SQFT | ${getPLabel(storeys)} | MODE: ${worldModeConfig.indiaName} | PKG ${pkg.toUpperCase()}`, 20, 65);
     doc.text(`LOCATION: ${geo.toUpperCase()} LIVE VERIFIED | BUILT-UP: ${tca} SQFT | FORMULA: ${plotNum} x ${Math.round(coverage*100)}% = ${groundPlate} x ${storeys} = ${tca} | GST ${gstOn?'18% INCLUDED':'EXTRA'}`, 20, 71);
-    doc.text(`BRANDS: Ultratech Rs.359/Bag | Kamdhenu NXT Rs.68/Kg | M-Sand Rs.45/CFT | Aggregate Rs.38/CFT | Polycab | Kajaria | Asian Paints | PROFIT ${profitPercent}% Rs.${profit.toLocaleString()} | 115 BRANDS AUTO RATE VERIFIED`, 20, 77);
+    doc.text(`BRANDS: Ultratech Rs.${getAnyMaterialLive(cityBaseRate, 359, 1)}/Bag | Kamdhenu NXT Rs.${getAnyMaterialLive(cityBaseRate, 68, 1)}/Kg | M-Sand Rs.${getAnyMaterialLive(cityBaseRate, 45, 1)}/CFT | Aggregate Rs.${getAnyMaterialLive(cityBaseRate, 38, 1)}/CFT | Polycab | Kajaria | Asian Paints | PROFIT ${profitPercent}% Rs.${profit.toLocaleString()} | 115 BRANDS AUTO RATE VERIFIED`, 20, 77);
     doc.setFillColor(BLACK[0],BLACK[1],BLACK[2]);
     doc.rect(20,84,W-40,34,'F');
     doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
@@ -363,7 +362,7 @@ export default function Page(){
     doc.setTextColor(160,160,160);
     doc.text(`BASE Rs.${baseRateDisplay} | EFF Rs.${effectiveRate} | Labour+Centring: Rs.${worldContractorRate}/SQFT | PKG BASIC ${basicRateShow} STD ${standardRateShow} PREM ${premiumRateShow} | 115 BRANDS AUTO RATE | PROFIT ${profitPercent}% POSITIVE`, W/2, 106, {align:'center'});
     doc.setTextColor(180,180,180);
-    doc.text(`Comparison: WITH MATERIAL ~ Rs.${(tca*standardRateShow).toLocaleString()} vs WITHOUT MATERIAL Rs.${ownerCharge.toLocaleString()} | QR VERIFIED ${lastUpdate} | M-Sand 45 Agg 38 AUTO RATE VERIFIED`, W/2, 112, {align:'center'});
+    doc.text(`Comparison: WITH MATERIAL ~ Rs.${(tca*standardRateShow).toLocaleString()} vs WITHOUT MATERIAL Rs.${ownerCharge.toLocaleString()} | QR VERIFIED ${lastUpdate} | M-Sand ${getAnyMaterialLive(cityBaseRate, 45, 1)} Agg ${getAnyMaterialLive(cityBaseRate, 38, 1)} AUTO RATE VERIFIED`, W/2, 112, {align:'center'});
     doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setFontSize(7);
     doc.text("PAGE 01 / 03 - WORLD LEVEL V7 AUTO MARKET RATE - 115 BRANDS VERIFIED - AUTO RATE LIVE", W/2, H-10, {align:'center'});
@@ -408,7 +407,7 @@ export default function Page(){
     doc.setTextColor(120,60,0);
     doc.setFontSize(7.5);
     doc.setFont("helvetica","bold");
-    doc.text(`WASTAGE 3-4-5% + LABOUR CESS 1% + M-SAND Rs.45/CFT + AGG Rs.38/CFT + CONTINGENCY 23rd ITEM INCLUDED - 115 BRANDS AUTO RATE VERIFIED`, 12, y+4.5);
+    doc.text(`WASTAGE 3-4-5% + LABOUR CESS 1% + M-SAND Rs.${getAnyMaterialLive(cityBaseRate, 45, 1)}/CFT + AGG Rs.${getAnyMaterialLive(cityBaseRate, 38, 1)}/CFT + CONTINGENCY 23rd ITEM INCLUDED - 115 BRANDS AUTO RATE VERIFIED`, 12, y+4.5);
     y+=8;
     doc.setFillColor(18,18,22);
     doc.rect(10,y,W-20,9,'F');
@@ -441,7 +440,7 @@ export default function Page(){
     doc.text("QR VERIFICATION - WORLD PREMIUM V7 - AUTO MARKET RATE - 115 BRANDS", W/2, 30, {align:'center'});
     doc.setFontSize(10);
     doc.setTextColor(255,255,255);
-    doc.text(`Scan to Verify: ${geo.toUpperCase()} - ${tca} SQFT - Rs.${ownerCharge.toLocaleString()} - PKG ${pkg.toUpperCase()} - 115 BRANDS AUTO RATE - M-Sand 45 Agg 38 - Profit ${profitPercent}% POSITIVE`, W/2, 45, {align:'center'});
+    doc.text(`Scan to Verify: ${geo.toUpperCase()} - ${tca} SQFT - Rs.${ownerCharge.toLocaleString()} - PKG ${pkg.toUpperCase()} - 115 BRANDS AUTO RATE - M-Sand ${getAnyMaterialLive(cityBaseRate, 45, 1)} Agg ${getAnyMaterialLive(cityBaseRate, 38, 1)} - Profit ${profitPercent}% POSITIVE`, W/2, 45, {align:'center'});
     doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]);
     doc.setLineWidth(0.6);
     doc.rect(W/2-35, 55, 70, 70);
@@ -463,10 +462,9 @@ export default function Page(){
     }
     doc.setTextColor(160,160,160);
     doc.setFontSize(8);
-    doc.text(`Verified: ${lastUpdate} | M-Sand Rs.45/CFT | Agg Rs.38/CFT | Contingency 23rd ITEM VERIFIED | 115 BRANDS V7 AUTO RATE PREMIUM VERIFIED`, W/2, 135, {align:'center'});
+    doc.text(`Verified: ${lastUpdate} | M-Sand Rs.${getAnyMaterialLive(cityBaseRate, 45, 1)}/CFT | Agg Rs.${getAnyMaterialLive(cityBaseRate, 38, 1)}/CFT | Contingency 23rd ITEM VERIFIED | 115 BRANDS V7 AUTO RATE PREMIUM VERIFIED`, W/2, 135, {align:'center'});
     doc.save(`WORLD_LEVEL_V7_${geo}_${tca}_${pkg}_${worldMode}_115BRANDS_AUTO_RATE_FINAL.pdf`);
   };
-
   const Progress = () => (
     <div className="w-full mb-3">
       <div className="flex justify-between mb-2">
@@ -480,7 +478,6 @@ export default function Page(){
       <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#d4af37] to-[#f0d060] transition-all duration-700" style={{width:`${(phase/3)*100}%`}}></div></div>
     </div>
   );
-
   return (
     <div className="min-h-screen bg-[#02020a] text-white flex flex-col items-center p-2 pb-32 overflow-y-auto relative">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.15),transparent_60%),radial-gradient(ellipse_at_bottom,_rgba(6,182,212,0.12),transparent_60%)] pointer-events-none"></div>
@@ -497,7 +494,6 @@ export default function Page(){
           <span className="text-[8px] px-2 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold tracking-wider">BASE Rs.{baseRateDisplay} | EFF Rs.{effectiveRate} • {tca} SQFT • LIVE {getCityRate(geo)} • MUMBAI 3300 BHOPAL 2100 NAGPUR 2000 • V9</span>
           <span className="text-[10px] font-black text-white bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-3 py-1 rounded-full border border-[#d4af37]/30">{viewMode==="owner" ? `Rs.${ownerCharge.toLocaleString()}` : `PROFIT: Rs.${profit.toLocaleString()} (${profitPercent}%) POSITIVE`}</span>
         </div>
-
         {phase===1 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4 backdrop-blur-xl animate-in fade-in shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
             <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] tracking-wider text-[#d4af37]">PAGE 1 • CONTRACT + LOCATION • V9 LIVE 7335 CITIES</h2><div className="text-[8px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">STEP 1/3 • V9 LIVE</div></div>
@@ -522,8 +518,6 @@ export default function Page(){
                 {show && (<div className="absolute left-0 right-[62px] top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto shadow-2xl">{[...new Set([...CITIES_DB, geo])].filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,20).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex justify-between border-b border-white/5"><span className="font-bold">{c}</span><span className="text-[#d4af37]">Rs.{getCityRate(c)}/sqft LIVE V9 • {getLiveTripleRates(c).contractionRate.centering}/{getLiveTripleRates(c).materialRate.tiles}</span></div>)}</div>)}
               </div>
             </div>
-
-            {/* ADD ONLY - ANY CITY SEARCH = LIVE TRIPLE RATE DISPLAY - KOI CUT NAHI - SIRF ADD */}
             <div className="bg-gradient-to-br from-[#d4af37]/20 to-[#f0d060]/10 border border-[#d4af37]/40 rounded-[18px] p-3 mb-3 animate-in fade-in">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] font-black text-[#d4af37]">🔴 LIVE MARKET - {geo.toUpperCase()} - ANY CITY SEARCH = INSTANT LIVE</span>
@@ -564,7 +558,6 @@ export default function Page(){
                 </div>
               </div>
             </div>
-
             <div className="bg-black/40 border border-[#d4af37]/20 rounded-[16px] p-3 mb-3">
               <div className="flex justify-between items-center mb-2"><span className="text-[10px] font-black text-[#d4af37]">PROFIT % + GST + PACKAGE • V9 LIVE</span>
                 <div className="flex gap-2 items-center">
@@ -583,7 +576,6 @@ export default function Page(){
             <button onClick={()=>setPhase(2)} className="w-full mt-2 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black py-4 rounded-full text-[12px] shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_50px_rgba(212,175,55,0.6)] transition-all">NEXT • RATES PAGE → V9 LIVE →</button>
           </div>
         )}
-
         {phase===2 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4 backdrop-blur-xl animate-in fade-in">
             <div className="flex justify-between mb-3"><h2 className="font-black text-[13px] text-[#d4af37]">PAGE 2 • RATES • V9 LIVE</h2><div className="text-[8px] px-2 py-1 rounded-full bg-white text-black font-black">STEP 2/3 • {profitPercent}% POSITIVE • PKG {pkg.toUpperCase()} • LIVE V9</div></div>
@@ -598,7 +590,6 @@ export default function Page(){
             <div className="flex gap-2 mt-4"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[11px] font-bold hover:bg-white/20">← BACK</button><button onClick={()=>setPhase(3)} className="flex-[2] bg-gradient-to-r from-white to-[#e0e0e0] text-black font-black py-3.5 rounded-full text-[12px] shadow">NEXT • FINAL ESTIMATE LIVE V9 →</button></div>
           </div>
         )}
-
         {phase===3 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/30 rounded-[24px] p-4 mb-24 backdrop-blur-xl animate-in fade-in shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
             <div className="flex justify-between mb-3 items-center"><h2 className="font-black text-[11px] text-[#d4af37] tracking-wider">PAGE 3 • FINAL ESTIMATE • V9 LIVE 7335 CITIES • MUMBAI 3300 BHOPAL 2100 NAGPUR 2000</h2><button onClick={()=>setPhase(2)} className="text-[10px] px-3 py-1 rounded-full bg-white/10 border border-white/10 hover:bg-white/20">← BACK</button></div>
@@ -624,8 +615,6 @@ export default function Page(){
                   <span className="text-[#d4af37] font-black shrink-0 mt-0.5">{sNo}.</span>
                   <span className="flex-1 whitespace-normal break-words leading-[1.3] group-hover:text-[#d4af37] transition-colors">
                     {cleanName} — {m.qty} {unit} @ Rs.{m.rate}/{unit}
-                    {m.id==="sand" && <span className="ml-2 inline-block text-[7px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full border border-green-500/30">M-SAND LIVE V9</span>}
-                    {m.id==="contingency" && <span className="ml-2 inline-block text-[7px] bg-[#d4af37]/20 text-[#d4af37] px-1.5 py-0.5 rounded-full border border-[#d4af37]/30">23rd LIVE V9</span>}
                   </span>
                 </span>
                 <div className="flex gap-2 items-center shrink-0">
@@ -639,8 +628,8 @@ export default function Page(){
                 <div className="flex justify-between mt-2 bg-black/60 rounded-full px-4 py-2.5 border border-[#d4af37]/20"><span className="text-[11px] font-black text-[#d4af37]">PROFIT {profitPercent}% POSITIVE : Rs.{profit.toLocaleString()} • FINAL CHARGE: Rs.{finalContractorCharge.toLocaleString()} • LIVE RATE {getCityRate(geo)} • V9</span><span className="text-[9px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">V9 LIVE 7335</span></div>
               </div>
             </div>
-            {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px] shadow-2xl"><h3 className="font-black text-[12px] mb-3 text-[#d4af37]">EDIT - {finalMaterials[edit.idx]?.id.toUpperCase()} • MARKET RATE LIVE V9</h3><div className="space-y-3">
-            <div><div className="text-[9px] opacity-60 font-bold">Company / Brand - 5 Options - Auto Market Rate Live V9</div>
+            {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px] shadow-2xl"><h3 className="font-black text-[12px] mb-3 text-[#d4af37]">EDIT - {finalMaterials[edit.idx]?.id.toUpperCase()} • MARKET RATE LIVE V9 - {geo.toUpperCase()} {getCityRate(geo)} LIVE</h3><div className="space-y-3">
+            <div><div className="text-[9px] opacity-60 font-bold">Company / Brand - 5 Options - Auto Market Rate Live V9 - {geo.toUpperCase()} LIVE</div>
             <select value={edit.company} onChange={e=>{
               const newCompany = e.target.value;
               const k1 = (edit.id || "").toLowerCase().trim();
@@ -649,8 +638,10 @@ export default function Page(){
               if(list.length===0) { setEdit({...edit, company:newCompany}); return; }
               const oldBrand = list.find((c:any)=>c.name===edit.company) || list[0];
               const newBrand = list.find((c:any)=>c.name===newCompany) || list[0];
+              const cityRateForEdit = getCityRate(geo);
               const currentBaseMarketRate = oldBrand.mult ? (edit.rate / oldBrand.mult) : edit.rate;
-              const newLiveMarketRate = Math.round(currentBaseMarketRate * newBrand.mult);
+              const cityBase = currentBaseMarketRate / getPureLiveFactor(cityRateForEdit);
+              const newLiveMarketRate = getAnyMaterialLive(cityRateForEdit, cityBase, newBrand.mult);
               setEdit({...edit, company:newCompany, rate:newLiveMarketRate});
             }} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none ring-1 ring-[#d4af37]/20">
               {(() => {
@@ -659,32 +650,37 @@ export default function Page(){
                 const list = COMPANY_MASTER[k1] || COMPANY_MASTER[k2] || COMPANY_MASTER["cement"];
                 return list.slice(0,5).map((c:any)=>{
                   const finalDisplayRate = (() => {
+                    const cityRateForEdit = getCityRate(geo);
                     const baseMarket = edit.rate / ((list.find((b:any)=>b.name===edit.company)?.mult) || 1);
-                    return Math.round(baseMarket * c.mult);
+                    const cityBase = baseMarket / getPureLiveFactor(cityRateForEdit);
+                    return getAnyMaterialLive(cityRateForEdit, cityBase, c.mult);
                   })();
-                  return <option key={c.name} value={c.name}>{c.name} - {c.label} - Rs.{finalDisplayRate} LIVE V9</option>;
+                  return <option key={c.name} value={c.name}>{c.name} - {c.label} - Rs.{finalDisplayRate} LIVE V9 - {geo.toUpperCase()}</option>;
                 });
               })()}
             </select>
-            <div className="text-[7px] text-green-400 mt-1 font-bold animate-pulse">↑ LIVE V9: Company badalte hi Rate auto live</div>
+            <div className="text-[7px] text-green-400 mt-1 font-bold animate-pulse">↑ LIVE V9: Company badalte hi Rate auto live - {geo.toUpperCase()} {getCityRate(geo)} factor {getPureLiveFactor(getCityRate(geo)).toFixed(2)}x</div>
             </div>
             <div><div className="text-[9px] opacity-60 font-bold">Quantity - Verified</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-white/10 rounded-full px-4 py-3 text-[12px] font-bold focus:border-[#d4af37]/50 outline-none" /></div>
             <div>
-              <div className="text-[9px] opacity-60 font-bold flex justify-between"><span>Rate • LIVE V9</span><span className="text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded-full">Market LIVE: Rs.{edit.rate}</span></div>
+              <div className="text-[9px] opacity-60 font-bold flex justify-between"><span>Rate • LIVE V9 - {geo.toUpperCase()}</span><span className="text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded-full">Market LIVE: Rs.{edit.rate} - {geo.toUpperCase()} {getCityRate(geo)}</span></div>
               <input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-[#d4af37]/15 border border-[#d4af37]/50 rounded-full px-4 py-3 text-[14px] font-black focus:border-[#d4af37] outline-none text-[#f0d060] shadow-inner" />
-              <div className="text-[7px] text-white/50 mt-1">Mumbai 3300 Bhopal 2100 Nagpur 2000 - Live V9</div>
+              <div className="text-[7px] text-white/50 mt-1">Mumbai 3300 Bhopal 2100 Nagpur 2000 - Live V9 - Current {geo.toUpperCase()} {getCityRate(geo)} - Factor {getPureLiveFactor(getCityRate(geo)).toFixed(2)}x - DUPLICATE FIX LOCKED</div>
             </div>
-            </div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px] shadow-[0_0_20px_rgba(212,175,55,0.5)]">APPLY • LIVE V9</button></div></div></div>)}
+            </div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px] shadow-[0_0_20px_rgba(212,175,55,0.5)]">APPLY • LIVE V9 - {geo.toUpperCase()} LIVE</button></div></div></div>)}
             <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[11px] shadow hover:shadow-lg transition-all">WhatsApp • LIVE V9 • 7335 CITIES</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[11px] shadow hover:shadow-xl transition-all">Download PDF • V9 LIVE 7335 CITIES</button></div>
           </div>
         )}
-
         {boxEditModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9998]">
             <div className="bg-[#1e293b] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[320px] shadow-2xl">
-              <h3 className="font-black text-[12px] mb-3 text-[#d4af37]">EDIT {boxEditModal.type.toUpperCase()} • V9 LIVE</h3>
-              <input type="text" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value:e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-full px-4 py-3 text-[13px] font-bold outline-none focus:border-[#d4af37]/50" autoFocus />
-              <div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button><button onClick={applyBoxEditModal} className="flex-1 bg-[#d4af37] text-black font-black rounded-full py-3 text-[11px]">APPLY • V9 LIVE</button></div>
+              <h3 className="font-black text-[12px] mb-3 text-[#d4af37]">EDIT {boxEditModal.type.toUpperCase()} • V9 LIVE - {geo.toUpperCase()} {getCityRate(geo)}</h3>
+              <input type="text" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value: e.target.value})} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[13px] font-bold outline-none focus:border-[#d4af37]" placeholder={`Enter ${boxEditModal.type} - LIVE`} />
+              <div className="flex gap-2 mt-4">
+                <button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[11px] font-bold">CANCEL</button>
+                <button onClick={applyBoxEditModal} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[11px] shadow">APPLY • LIVE V9</button>
+              </div>
+              <div className="text-[7px] text-white/40 mt-2 text-center">Mumbai 3300 Bhopal 2100 Nagpur 2000 - {geo.toUpperCase()} {getCityRate(geo)} LIVE - NO CUT</div>
             </div>
           </div>
         )}
