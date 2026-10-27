@@ -2,6 +2,7 @@
 // @ts-nocheck
 // ABuildWise OS - FINAL V7 ULTRA - 23 ITEMS x 5 BRANDS = 115 BRANDS - HAR EDIT ME 5 COMPANY + AUTO MARKET RATE LIVE - 100% WORLD LEVEL - NO CUT
 // FINAL V9 - NO CUT - SIRF ADD
+// FINAL V12 - ANY CITY SEARCH = LIVE CONTRACTION + MATERIAL + CONSTRUCTION DISPLAY - 1 WORD CUT NAHI - SIRF ADD
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -58,8 +59,8 @@ function getLiveTripleRates(city: string){
   const isTier2 = cityRate >= 2000;
   return {
     constructionRate: cityRate,
-    contractionRate: { centering: isMetro ? 650 : isTier2 ? 480 : 420, steelBinding: isMetro ? 180 : isTier2 ? 120 : 95, labour: isMetro ? 550 : isTier2 ? 380 : 300 },
-    materialRate: { tiles: isMetro ? 110 : isTier2 ? 85 : 65, cement: isMetro ? 410 : 359, steel: isMetro ? 78 : 68, sand: isMetro ? 55 : 45, aggregate: isMetro ? 58 : 38 }
+    contractionRate: { centering: isMetro ? 650 : isTier2 ? 480 : 420, steelBinding: isMetro ? 180 : isTier2 ? 120 : 95, labour: isMetro ? 550 : isTier2 ? 380 : 300, mistri: isMetro ? 1237 : isTier2 ? 800 : 600, beldar: isMetro ? 825 : isTier2 ? 550 : 400 },
+    materialRate: { tiles: isMetro ? 110 : isTier2 ? 85 : 65, cement: isMetro ? 410 : 359, steel: isMetro ? 78 : 68, sand: isMetro ? 55 : 45, aggregate: isMetro ? 58 : 38, bricks: isMetro ? 95 : isTier2 ? 71 : 55 }
   };
 }
 function getLiveCoverage(city: string, plotArea: number){
@@ -521,6 +522,49 @@ export default function Page(){
                 {show && (<div className="absolute left-0 right-[62px] top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto shadow-2xl">{[...new Set([...CITIES_DB, geo])].filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,20).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex justify-between border-b border-white/5"><span className="font-bold">{c}</span><span className="text-[#d4af37]">Rs.{getCityRate(c)}/sqft LIVE V9 • {getLiveTripleRates(c).contractionRate.centering}/{getLiveTripleRates(c).materialRate.tiles}</span></div>)}</div>)}
               </div>
             </div>
+
+            {/* ADD ONLY - ANY CITY SEARCH = LIVE TRIPLE RATE DISPLAY - KOI CUT NAHI - SIRF ADD */}
+            <div className="bg-gradient-to-br from-[#d4af37]/20 to-[#f0d060]/10 border border-[#d4af37]/40 rounded-[18px] p-3 mb-3 animate-in fade-in">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black text-[#d4af37]">🔴 LIVE MARKET - {geo.toUpperCase()} - ANY CITY SEARCH = INSTANT LIVE</span>
+                <span className="text-[8px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">NO CUT • PURE LIVE • ANY CITY</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-[#d4af37]/30">
+                  <div className="text-[8px] text-[#d4af37] font-bold tracking-wider">🏗️ CONSTRUCTION RATE LIVE - {geo.toUpperCase()}</div>
+                  <div className="text-[22px] font-black text-white mt-1">Rs.{getCityRate(geo)}/sqft</div>
+                  <div className="text-[7px] text-white/60 mt-1">Mumbai 3300 | Bhopal 2100 | Nagpur 2000 | {geo} {getCityRate(geo)} - ALL LIVE - NO CUT</div>
+                  <div className="mt-2 grid grid-cols-2 gap-1 text-[8px]">
+                    <div className="bg-white/5 rounded-full px-2 py-1">Basic: Rs.{Math.round(getCityRate(geo)*0.82)}</div>
+                    <div className="bg-white/5 rounded-full px-2 py-1">Premium: Rs.{Math.round(getCityRate(geo)*1.38)}</div>
+                  </div>
+                </div>
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-cyan-400/30">
+                  <div className="text-[8px] text-cyan-300 font-bold tracking-wider">👷 CONTRACTION / LABOUR RATE LIVE - {geo.toUpperCase()}</div>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Centering:</span><span className="text-cyan-300">Rs.{getLiveTripleRates(geo).contractionRate.centering}/sqft</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Steel Binding:</span><span className="text-cyan-300">Rs.{getLiveTripleRates(geo).contractionRate.steelBinding}/sqft</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Mistri:</span><span className="text-white">Rs.{getLiveTripleRates(geo).contractionRate.mistri}/day</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Beldar:</span><span className="text-white">Rs.{getLiveTripleRates(geo).contractionRate.beldar}/day</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Labour:</span><span className="text-cyan-300">Rs.{getLiveTripleRates(geo).contractionRate.labour}/sqft</span></div>
+                  </div>
+                  <div className="text-[7px] text-cyan-400 mt-2">{geo.toUpperCase()} LIVE {getLiveTripleRates(geo).contractionRate.centering}/{getLiveTripleRates(geo).contractionRate.labour} - ANY CITY SEARCH = LIVE - NO CUT</div>
+                </div>
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-green-400/30">
+                  <div className="text-[8px] text-green-300 font-bold tracking-wider">🧱 MATERIAL RATE LIVE - {geo.toUpperCase()} - NO CUT</div>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Cement:</span><span className="text-green-300">Rs.{getLiveTripleRates(geo).materialRate.cement}/Bag</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Steel:</span><span className="text-green-300">Rs.{getLiveTripleRates(geo).materialRate.steel}/Kg</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">M-Sand:</span><span className="text-white">Rs.{getLiveTripleRates(geo).materialRate.sand}/CFT</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Aggregate:</span><span className="text-white">Rs.{getLiveTripleRates(geo).materialRate.aggregate}/CFT</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Bricks:</span><span className="text-white">Rs.{getLiveTripleRates(geo).materialRate.bricks}</span></div>
+                    <div className="flex justify-between text-[11px] font-black"><span className="text-white/70">Tiles:</span><span className="text-white">Rs.{getLiveTripleRates(geo).materialRate.tiles}/sqft</span></div>
+                  </div>
+                  <div className="text-[7px] text-green-400 mt-2">{geo.toUpperCase()} LIVE Cement {getLiveTripleRates(geo).materialRate.cement} Steel {getLiveTripleRates(geo).materialRate.steel} Sand {getLiveTripleRates(geo).materialRate.sand} - ANY CITY LIVE - NO CUT</div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-black/40 border border-[#d4af37]/20 rounded-[16px] p-3 mb-3">
               <div className="flex justify-between items-center mb-2"><span className="text-[10px] font-black text-[#d4af37]">PROFIT % + GST + PACKAGE • V9 LIVE</span>
                 <div className="flex gap-2 items-center">
