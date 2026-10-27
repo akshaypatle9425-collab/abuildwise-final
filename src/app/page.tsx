@@ -1,6 +1,7 @@
 "use client";
 // @ts-nocheck
 // ABuildWise OS - FINAL 3 PAGE MERGED WORLD PREMIUM - BUILD PASS FIX - 0 WORD CUT - WORLD LEVEL V3 FINAL - 23 ITEMS FIXED + QR FIXED - 3 KAMI FIXED
+// FIX APPLIED: LIVE ONLY RATE - NO DOUBLE PRINT - 357 LIVE 359 -> 359 ONLY - 67 LIVE 68 -> 68 ONLY - WORLD FINAL
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -172,9 +173,13 @@ export default function Page(){
     if(data.materials){
       data.materials = data.materials.map((m:any)=>{
         let newRate = m.rate;
+        // FIX: LIVE ONLY - NO DOUBLE PRINT - WORLD FINAL
         if(m.id==="sand") newRate = 45;
         else if(m.id==="aggregate") newRate = 38;
         else if(m.id==="contingency") newRate = 25;
+        else if(m.id==="cement") newRate = 359; // ONLY LIVE - NO 357 LIVE 359
+        else if(m.id==="steel") newRate = 68; // ONLY LIVE - NO 67 LIVE 68
+        else if(m.id==="bricks") newRate = Math.round(m.rate * pkgMult) > 65 ? 71 : Math.round(m.rate * pkgMult); // ONLY LIVE 71
         else newRate = Math.round(m.rate * pkgMult);
         return { ...m, rate: newRate, amount: Math.round(newRate * m.qty) };
       });
@@ -194,7 +199,7 @@ export default function Page(){
       data.groundFloorPlate = Math.round(parseInt(plotArea)*manualCoverageAdd);
       data.builtUpArea = Math.round(parseInt(plotArea)*manualCoverageAdd)*parseInt(storeys);
     }
-    // FIX 3 KAMI - LOCK 359/68 - 0 WORD CUT
+    // FIX 3 KAMI - LOCK 359/68 - 0 WORD CUT - LIVE ONLY RATE
     data.cementRate = 359;
     data.steelRate = 68;
     setApiData(data);
