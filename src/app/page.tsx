@@ -88,6 +88,9 @@ const WORLD_CONTRACT_MODES: any = {
   labour: { id: "labour", indiaName: "Labour Only", worldName: "Labour Rate Contract", ownerLabel: "Labour Only", ownerDesc: "Labour & Supervision Only", contractorLabel: "Labour Only", contractorDesc: "Contractor Provides Labour Only - Owner Provides All Material", ratePerSqft: 280, contractorGive: ["mistri","beldar","contingency"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
   custom: { id: "custom", indiaName: "Item Rate - Custom BOQ", worldName: "Item Rate / Custom BOQ", ownerLabel: "Item Rate - Custom Selection", ownerDesc: "Flexible BOQ", contractorLabel: "Item Rate - Custom BOQ", contractorDesc: "Flexible BOQ - Select Items Below", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
 };
+// ADDED - Tere hisab se - 23 Items wala label sahi kiya, 24 Items hai - purana 23 wala upar waisa hi rakha hai, ye naya label display ke liye hai
+// NOTE: Upar wala contractorLabel "23 Items" tera original hai, usko cut nahi kiya. Niche display me 24 dikhane ke liye ye helper add kiya hai.
+const getContractorLabelFixed = (mode:any) => mode.id==="full" ? "With Material - Turnkey - 24 Items" : mode.contractorLabel;
 export default function Page(){
   const [geo,setGeo]=useState("Nagpur");
   const [liveLabel,setLiveLabel]=useState("Current Location");
@@ -200,7 +203,10 @@ export default function Page(){
     if(worldMode==="custom"){
       const cIds = Object.keys(customTick).filter(k=>customTick[k]==="contractor");
       const oIds = Object.keys(customTick).filter(k=>customTick[k]==="owner");
-      if(cIds.length===0 && oIds.length===0) return { contractorMats: mats.filter((m:any)=>CONTRACTOR_ONLY_IDS.includes(m.id)), ownerMats: mats.filter((m:any)=>!CONTRACTOR_ONLY_IDS.includes(m.id)) };
+      // ORIGINAL LINE - CUT NAHI KI - COMMENT ME RAKHA HAI:
+      // if(cIds.length===0 && oIds.length===0) return { contractorMats: mats.filter((m:any)=>CONTRACTOR_ONLY_IDS.includes(m.id)), ownerMats: mats.filter((m:any)=>!CONTRACTOR_ONLY_IDS.includes(m.id)) };
+      // ADDED - Tere hisab se - Custom me Tick khali hai to 0 / 0 hona chahiye, Centring wala 16/7 nahi aana chahiye
+      if(cIds.length===0 && oIds.length===0) return { contractorMats: [], ownerMats: [] };
       return { contractorMats: mats.filter((m:any)=>cIds.includes(m.id)), ownerMats: mats.filter((m:any)=>oIds.includes(m.id)) };
     }
     return { contractorMats: mats.filter((m:any)=>worldModeConfig.contractorGive.includes(m.id)), ownerMats: mats.filter((m:any)=>worldModeConfig.ownerGive.includes(m.id)) };
@@ -211,6 +217,9 @@ export default function Page(){
   const filteredOwnerMats = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
   // ===== FIX 21-1: Turnkey me Owner (0) nahi - Display ke liye Owner ko bhi full list dikhao, logic same hai =====
   const filteredOwnerForDisplay = worldMode==="full" ? filteredFinalMaterials : filteredOwnerMats;
+  // ADDED - Tere hisab se - Custom mode me display ke liye Tick wali list dikhao, jab Tick khali hai to khali list dikhegi
+  const filteredOwnerForDisplayFixed = worldMode==="custom" ? filteredOwnerMats : filteredOwnerForDisplay;
+  const filteredOwnerForDisplayFinal = worldMode==="custom" ? filteredOwnerForDisplayFixed : filteredOwnerForDisplay;
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
   // ===== ORIGINAL LOGIC - FULL RESTORED - KOI LINE KAM NAHI KI =====
@@ -226,13 +235,20 @@ export default function Page(){
   const ownerChargeBaseOriginal = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
   // ===== FIX 21-2: Total double-jod hataya - Centring/Labour me material 2 baar nahi judega, same ghar ka Total same rahega =====
   const ownerChargeBase = (worldMode==="centring" || worldMode==="labour") ? (tca * standardRateShow + Math.max(0, (tca*worldContractorRate) - worldContractorCost)) : ownerChargeBaseOriginal;
-  const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
+  // ADDED - Tere hisab se - With Material jyada, Without Material kam - Upar wali ownerChargeBase original hai, usko cut nahi kiya. Ye naya Final Base hai jo display / Total me use hoga:
+  // Full = tca * standard (25.6 Lakh - sabse jyada) | Centring = worldOwnerCost + tca*450 (Material at cost + Labour - thoda kam) | Labour = worldOwnerCost + tca*280 (sabse kam contractor charge) | Custom = Tick kiya hua jod + Profit (koi fixed nahi)
+  const ownerChargeBaseFinal = worldMode==="full" ? (tca * standardRateShow) : worldMode==="centring" ? (worldOwnerCost + (tca*worldContractorRate)) : worldMode==="labour" ? (worldOwnerCost + (tca*worldContractorRate)) : worldMode==="custom" ? (Object.keys(customTick).length===0 ? 0 : (worldOwnerCost + worldContractorCost)) : ownerChargeBase;
+  const ownerCharge = gstOn ? Math.round(ownerChargeBaseFinal * 1.18) : ownerChargeBaseFinal;
   const contractorCost = worldMode==="full" ? grandTotal : worldContractorCost;
-  const contractorCharge = worldMode==="full" ? ownerChargeBase : tca * worldContractorRate;
-  const profitBaseRaw = worldMode==="full" ? contractorCharge - grandTotal : contractorCharge - worldContractorCost;
+  const contractorCharge = worldMode==="full" ? ownerChargeBaseFinal : tca * worldContractorRate;
+  // ADDED - Tere hisab se - Custom me contractorCharge Tick wale jod se aayega, tca*350 se nahi
+  const contractorChargeFinal = worldMode==="custom" ? (Object.keys(customTick).length===0 ? 0 : (worldContractorCost + Math.round(worldContractorCost * (profitPercent/100)))) : contractorCharge;
+  const profitBaseRaw = worldMode==="full" ? contractorChargeFinal - grandTotal : contractorChargeFinal - worldContractorCost;
   const profitPositive = Math.abs(profitBaseRaw) < (contractorCost * 0.05) ? Math.round(contractorCost * (profitPercent/100)) : Math.abs(profitBaseRaw);
   const profit = viewMode==="contractor" ? Math.round(contractorCost * (profitPercent/100)) : Math.max(profitPositive, Math.round(contractorCost * (profitPercent/100)));
-  const finalContractorCharge = viewMode==="contractor" ? contractorCost + profit : contractorCharge;
+  // ADDED - Tere hisab se - Custom me Profit 0 hona chahiye jab Tick khali hai
+  const profitFinal = worldMode==="custom" && Object.keys(customTick).length===0 ? 0 : profit;
+  const finalContractorCharge = viewMode==="contractor" ? contractorCost + profitFinal : contractorChargeFinal;
   // ===== 17 KAMI FIX - SIRF DISPLAY / PDF KE LIYE - LOGIC KO HATH NAHI =====
   const finalTotal = viewMode==="owner" ? ownerCharge : finalContractorCharge;
   const effectiveRate = Math.round(finalTotal / (tcaV20 || 1));
@@ -261,7 +277,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${finalTotal.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalContractorCharge.toLocaleString()} - Profit Rs.${profit.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
+    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${finalTotal.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalContractorCharge.toLocaleString()} - Profit Rs.${profitFinal.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const wrapPdf = (doc:any, text:string, x:number, y:number, maxW:number, lineH:number) => {
@@ -298,7 +314,7 @@ export default function Page(){
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(GREY[0],GREY[1],GREY[2]); doc.text(`${geo} | ${pkg} Package`, 14, 22);
     let by = 30; doc.setFillColor(20,20,20); doc.rect(14,by,W-28,8,'F'); doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
     doc.text("No.", 16, by+5.5); doc.text("Item", 24, by+5.5); doc.text("Qty", 108, by+5.5); doc.text("Rate", 132, by+5.5); doc.text("Amount", W-16, by+5.5, {align:'right'}); by+=11;
-    const pdfMats = viewMode==="owner" ? filteredOwnerForDisplay : filteredFinalMaterials; let sNo=1;
+    const pdfMats = viewMode==="owner" ? filteredOwnerForDisplayFinal : filteredFinalMaterials; let sNo=1;
     for(const m of pdfMats){
       if(by>260){ doc.addPage(); by=16; }
       let fixedQty = m.qty; if(m.id==="pop") fixedQty = Math.round(tcaV20*0.75); if(m.id==="sanitary") fixedQty = (parseInt(storeys)||1)*2; if(m.id==="tiles") fixedQty = Math.round(tcaV20*0.85);
@@ -347,7 +363,7 @@ export default function Page(){
         <div className="sticky top-2 z-50 flex flex-wrap justify-between items-center gap-2 bg-gradient-to-r from-[#0f141f] to-[#141a2a] border border-[#d4af37]/20 rounded-2xl px-4 py-2.5 mb-2">
           <span className="font-black text-[13px] break-words whitespace-normal min-w-0">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">Estimate</span></span>
           <div className="flex flex-wrap bg-black/60 rounded-full p-1 border border-[#d4af37]/20 gap-1">
-            <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
+            <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({worldMode==="custom" ? filteredOwnerMats.length : filteredOwnerForDisplay.length})</button>
             <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredContractorMats.length})</button>
           </div>
         </div>
@@ -355,7 +371,7 @@ export default function Page(){
         {/* FIX: Base + Total 1 line me - grid-cols-2, 2 line waste nahi */}
         <div className="grid grid-cols-2 gap-2 bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3">
           <span className="text-[11px] px-2 py-1.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold break-words whitespace-normal min-w-0 text-center">Base Rs.{baseRateDisplay} | Built-up {tcaV20} | Live {getCityRate(geo)}</span>
-          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-2 py-1.5 rounded-full border border-[#d4af37]/30 break-words whitespace-normal min-w-0 text-center">{viewMode==="owner" ? `Rs.${finalTotal.toLocaleString()}` : `Profit: Rs.${profit.toLocaleString()}`}</span>
+          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-2 py-1.5 rounded-full border border-[#d4af37]/30 break-words whitespace-normal min-w-0 text-center">{viewMode==="owner" ? `Rs.${finalTotal.toLocaleString()}` : `Profit: Rs.${profitFinal.toLocaleString()}`}</span>
         </div>
         {phase===1 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4">
@@ -437,17 +453,34 @@ export default function Page(){
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/30 rounded-[24px] p-4 mb-24">
             <div className="flex flex-wrap justify-between mb-3 items-center gap-2"><h2 className="font-black text-[13px] text-[#d4af37] break-words whitespace-normal">Page 3 - Final Estimate</h2><button onClick={()=>setPhase(2)} className="text-[11px] px-3 py-1 rounded-full bg-white/10 border border-white/10 whitespace-nowrap">Back</button></div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-black/60 rounded-2xl p-1 border border-[#d4af37]/20 mb-3">
-              <button onClick={()=>setViewMode("owner")} className={`px-2 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap min-w-0 ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
+              <button onClick={()=>setViewMode("owner")} className={`px-2 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap min-w-0 ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({worldMode==="custom" ? filteredOwnerMats.length : filteredOwnerForDisplay.length})</button>
               <button onClick={()=>setViewMode("contractor")} className={`px-2 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap min-w-0 ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredContractorMats.length})</button>
               <button onClick={()=>setQrShow(!qrShow)} className="px-2 py-1.5 rounded-full text-[10px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 whitespace-nowrap min-w-0">QR {qrShow ? "Hide" : "Show"}</button>
               <button onClick={()=>setGstOn(!gstOn)} className={`px-2 py-1.5 rounded-full text-[10px] font-black border whitespace-nowrap min-w-0 ${gstOn?'bg-[#d4af37] text-black':'bg-white/10 text-white/60'}`}>GST {gstOn?'ON':'OFF'}</button>
             </div>
-            <div className="max-h-[58vh] overflow-y-auto rounded-xl bg-black/30 p-2 border border-white/5">{(viewMode==="owner" ? filteredOwnerForDisplay : filteredFinalMaterials).map((m:any, idx:number)=>{
+            {/* ADDED - Tere hisab se - Item Rate me Tick karne ka box - ye naya hai, purani list ke upar add kiya hai, purani list cut nahi ki */}
+            {worldMode==="custom" && (
+              <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-[16px] p-3 mb-3">
+                <div className="text-[11px] font-black text-[#d4af37] mb-2">Item Rate - Tick karo: Owner dega ya Contractor dega?</div>
+                <div className="text-[10px] text-white/60 mb-2">Tick khali hai to Total Rs.0 hoga. Jitna Tick karoge utna hi Total banega.</div>
+                <div className="flex gap-2"><button onClick={()=>setCustomTick({})} className="px-3 py-1.5 rounded-full text-[10px] font-black bg-white/10 border border-white/20">Clear All - 0 / 0</button><span className="text-[10px] py-1.5">Owner: {filteredOwnerMats.length} | Contractor: {filteredContractorMats.length} | Total: Rs.{finalTotal.toLocaleString()}</span></div>
+              </div>
+            )}
+            <div className="max-h-[58vh] overflow-y-auto rounded-xl bg-black/30 p-2 border border-white/5">{(viewMode==="owner" ? filteredOwnerForDisplayFinal : filteredFinalMaterials).map((m:any, idx:number)=>{
               const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id); const unit = getUnitForId(m.id); const sNo = idx+1; const cleanName = (m.name || "").replace(/^\d+\.?\s*/,'').replace(/^\d+\.\s*\d+\.\s*/,''); let displayQty = m.qty; if(m.id==="pop") displayQty = Math.round(tcaV20*0.75); if(m.id==="sanitary") displayQty = (parseInt(storeys)||1)*2;
-              return (<div key={m.id} className="flex justify-between items-start gap-2 bg-gradient-to-r from-white/[0.06] to-white/[0.03] rounded-[14px] px-3 py-3 text-[12px] mb-2 border border-white/10"><span className="flex-1 min-w-0 flex gap-2 items-start"><span className="text-[#d4af37] font-black shrink-0 mt-0.5">{sNo}.</span><span className="flex-1 min-w-0 break-words whitespace-normal leading-[1.4]">{cleanName} - {displayQty} {unit} @ Rs.{m.rate} / {unit}</span></span><div className="flex flex-wrap gap-2 items-center shrink-0"><span className="font-black break-words whitespace-nowrap">Rs.{(displayQty*m.rate).toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:displayQty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-white text-black px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap">Edit</button></div></div>)
+              return (<div key={m.id} className="flex flex-col gap-2 bg-gradient-to-r from-white/[0.06] to-white/[0.03] rounded-[14px] px-3 py-3 text-[12px] mb-2 border border-white/10"><div className="flex justify-between items-start gap-2"><span className="flex-1 min-w-0 flex gap-2 items-start"><span className="text-[#d4af37] font-black shrink-0 mt-0.5">{sNo}.</span><span className="flex-1 min-w-0 break-words whitespace-normal leading-[1.4]">{cleanName} - {displayQty} {unit} @ Rs.{m.rate} / {unit}</span></span><div className="flex flex-wrap gap-2 items-center shrink-0"><span className="font-black break-words whitespace-nowrap">Rs.{(displayQty*m.rate).toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:displayQty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-white text-black px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap">Edit</button></div></div>
+              {/* ADDED - Tere hisab se - Har item ke niche Owner / Contractor Tick - sirf Custom mode me dikhega, baaki mode me nahi */}
+              {worldMode==="custom" && (
+                <div className="flex gap-2 pl-5">
+                  <button onClick={()=>setCustomTick((prev:any)=>({...prev, [m.id]:"owner"}))} className={`px-3 py-1 rounded-full text-[10px] font-black border ${customTick[m.id]==="owner" ? "bg-white text-black" : "bg-black/40 text-white/60"}`}>Owner Degega {customTick[m.id]==="owner" ? "✓" : ""}</button>
+                  <button onClick={()=>setCustomTick((prev:any)=>({...prev, [m.id]:"contractor"}))} className={`px-3 py-1 rounded-full text-[10px] font-black border ${customTick[m.id]==="contractor" ? "bg-[#d4af37] text-black" : "bg-black/40 text-white/60"}`}>Contractor Degega {customTick[m.id]==="contractor" ? "✓" : ""}</button>
+                  {customTick[m.id] && (<button onClick={()=>setCustomTick((prev:any)=>{ const n={...prev}; delete n[m.id]; return n; })} className="px-2 py-1 rounded-full text-[10px] bg-red-500/20 text-red-300">✕ Hataye</button>)}
+                </div>
+              )}
+              </div>)
             })}
             </div>
-            <div className="mt-3 bg-gradient-to-r from-[#d4af37]/15 to-[#f0d060]/10 border border-[#d4af37]/30 rounded-[16px] p-3"><div className="flex flex-wrap justify-between gap-2 text-[11px] font-black"><span className="text-[#d4af37] break-words whitespace-normal">Built-up {tcaV20} Sqft - POP {Math.round(tcaV20*0.75)} - Sanitary {(parseInt(storeys)||1)*2}</span></div><div className="flex flex-wrap justify-between gap-2 mt-2 bg-black/60 rounded-2xl px-4 py-2.5 border border-[#d4af37]/20"><span className="text-[12px] font-black text-[#d4af37] break-words whitespace-normal">Profit {profitPercent}% : Rs.{profit.toLocaleString()} - Final: Rs.{finalTotal.toLocaleString()}</span></div></div>
+            <div className="mt-3 bg-gradient-to-r from-[#d4af37]/15 to-[#f0d060]/10 border border-[#d4af37]/30 rounded-[16px] p-3"><div className="flex flex-wrap justify-between gap-2 text-[11px] font-black"><span className="text-[#d4af37] break-words whitespace-normal">Built-up {tcaV20} Sqft - POP {Math.round(tcaV20*0.75)} - Sanitary {(parseInt(storeys)||1)*2}</span></div><div className="flex flex-wrap justify-between gap-2 mt-2 bg-black/60 rounded-2xl px-4 py-2.5 border border-[#d4af37]/20"><span className="text-[12px] font-black text-[#d4af37] break-words whitespace-normal">Profit {profitPercent}% : Rs.{profitFinal.toLocaleString()} - Final: Rs.{finalTotal.toLocaleString()}</span></div></div>
             {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px]"><h3 className="font-black text-[13px] mb-3 text-[#d4af37] break-words whitespace-normal">Edit - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Company / Brand - 5 Options - {geo}</div><select value={edit.company} onChange={e=>{ const newCompany = e.target.value; const k1 = (edit.id || "").toLowerCase().trim(); const k2 = (edit.cat || "").toLowerCase().trim(); const list = (COMPANY_MASTER[k1] || COMPANY_MASTER[k2] || []).slice(0,5); if(list.length===0) { setEdit({...edit, company:newCompany}); return; } const oldBrand = list.find((c:any)=>c.name===edit.company) || list[0]; const newBrand = list.find((c:any)=>c.name===newCompany) || list[0]; const cityRateForEdit = getCityRate(geo); const currentBaseMarketRate = oldBrand.mult ? (edit.rate / oldBrand.mult) : edit.rate; const cityBase = currentBaseMarketRate / getPureLiveFactor(cityRateForEdit); const newLiveMarketRate = getAnyMaterialLive(cityRateForEdit, cityBase, newBrand.mult); setEdit({...edit, company:newCompany, rate:newLiveMarketRate}); }} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[13px] font-bold break-words whitespace-normal"><option value={edit.company}>{edit.company} - Rs.{edit.rate}</option>{(COMPANY_MASTER[edit.id]||COMPANY_MASTER[edit.cat]||COMPANY_MASTER["cement"]).slice(0,5).map((c:any)=><option key={c.name} value={c.name}>{c.name} - {c.label}</option>)}</select></div><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[13px] font-bold" /><div className="text-[11px] text-cyan-300 mt-1 break-words whitespace-normal">{edit.id==="pop"?`Built-up ${tcaV20} x 75% = ${Math.round(tcaV20*0.75)}`:`Floors ${storeys} x 2 = ${edit.qty}`}</div></div><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Rate</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-[#d4af37]/15 border border-[#d4af37]/50 rounded-full px-4 py-3 text-[15px] font-black text-[#f0d060]" /><div className="text-[13px] font-black text-white mt-2 break-words whitespace-normal">Rs.{(edit.qty*edit.rate).toLocaleString()} = {edit.qty} x Rs.{edit.rate}</div></div></div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[12px] font-bold">Cancel</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[12px]">Apply</button></div></div></div>)}
             <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[12px] break-words whitespace-normal">WhatsApp</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[12px] break-words whitespace-normal">Download PDF</button></div>
           </div>
