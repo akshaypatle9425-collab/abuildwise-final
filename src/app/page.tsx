@@ -1,6 +1,6 @@
 "use client";
 // @ts-nocheck
-// V23 FINAL - FULL LOGIC RESTORED - 17 KAMI FIXED - 0 LOGIC KAM
+// V24 FINAL - 21 KAMI FIXED - 0 LOGIC KAM - FULL LOGIC RESTORED
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -83,10 +83,10 @@ type EditState = { idx:number, qty:number, rate:number, company:string, cat:stri
 type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"|"premium"|"construction"|"contraction"|"material", value:string } | null;
 const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","lift","contingency"];
 const WORLD_CONTRACT_MODES: any = {
-  full: { id: "full", indiaName: "With Material - Turnkey", worldName: "Turnkey Full Service", ownerLabel: "With Material - Turnkey", ownerDesc: "All Materials + Labour Included", contractorLabel: "With Material - Turnkey - 23 Items", ratePerSqft: 0, contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift","contingency"], ownerGive: [] },
-  centring: { id: "centring", indiaName: "Without Material - Centring + Labour", worldName: "Formwork + Labour", ownerLabel: "Without Material - Material by Owner", ownerDesc: "Owner Provides Material", contractorLabel: "Without Material - Centring + Labour", ratePerSqft: 450, contractorGive: ["ply","batta","jack","mistri","beldar","curing","contingency"], ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"] },
-  labour: { id: "labour", indiaName: "Labour Only", worldName: "Labour Rate Contract", ownerLabel: "Labour Only", ownerDesc: "Labour & Supervision Only", contractorLabel: "Labour Only", ratePerSqft: 280, contractorGive: ["mistri","beldar","contingency"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
-  custom: { id: "custom", indiaName: "Item Rate - Custom BOQ", worldName: "Item Rate / Custom BOQ", ownerLabel: "Item Rate - Custom Selection", ownerDesc: "Flexible BOQ", contractorLabel: "Item Rate - Custom BOQ", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
+  full: { id: "full", indiaName: "With Material - Turnkey", worldName: "Turnkey Full Service", ownerLabel: "With Material - Turnkey", ownerDesc: "All Materials + Labour Included", contractorLabel: "With Material - Turnkey - 23 Items", contractorDesc: "All Materials + Labour Included - Contractor Provides All", ratePerSqft: 0, contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift","contingency"], ownerGive: [] },
+  centring: { id: "centring", indiaName: "Without Material - Centring + Labour", worldName: "Formwork + Labour", ownerLabel: "Without Material - Material by Owner", ownerDesc: "Owner Provides Material", contractorLabel: "Without Material - Centring + Labour", contractorDesc: "Contractor Provides Formwork + Labour - Owner Provides Material", ratePerSqft: 450, contractorGive: ["ply","batta","jack","mistri","beldar","curing","contingency"], ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"] },
+  labour: { id: "labour", indiaName: "Labour Only", worldName: "Labour Rate Contract", ownerLabel: "Labour Only", ownerDesc: "Labour & Supervision Only", contractorLabel: "Labour Only", contractorDesc: "Contractor Provides Labour Only - Owner Provides All Material", ratePerSqft: 280, contractorGive: ["mistri","beldar","contingency"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
+  custom: { id: "custom", indiaName: "Item Rate - Custom BOQ", worldName: "Item Rate / Custom BOQ", ownerLabel: "Item Rate - Custom Selection", ownerDesc: "Flexible BOQ", contractorLabel: "Item Rate - Custom BOQ", contractorDesc: "Flexible BOQ - Select Items Below", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
 };
 export default function Page(){
   const [geo,setGeo]=useState("Nagpur");
@@ -206,10 +206,11 @@ export default function Page(){
     return { contractorMats: mats.filter((m:any)=>worldModeConfig.contractorGive.includes(m.id)), ownerMats: mats.filter((m:any)=>worldModeConfig.ownerGive.includes(m.id)) };
   };
   const { contractorMats: worldContractorMats, ownerMats: worldOwnerMats } = getFilteredByWorldMode(finalMaterials);
-  const filteredOwnerForDisplay = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
   const filteredFinalMaterials = finalMaterials.filter((m:any)=> m.qty>0 && m.amount>0);
   const filteredContractorMats = worldContractorMats.filter((m:any)=> m.qty>0 && m.amount>0);
   const filteredOwnerMats = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
+  // ===== FIX 21-1: Turnkey me Owner (0) nahi - Display ke liye Owner ko bhi full list dikhao, logic same hai =====
+  const filteredOwnerForDisplay = worldMode==="full" ? filteredFinalMaterials : filteredOwnerMats;
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
   // ===== ORIGINAL LOGIC - FULL RESTORED - KOI LINE KAM NAHI KI =====
@@ -221,7 +222,10 @@ export default function Page(){
   const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? getAnyMaterialLive(cityBaseRate, 450, 1) : worldMode==="labour" ? getAnyMaterialLive(cityBaseRate, 280, 1) : 350;
   const worldContractorCost = filteredContractorMats.reduce((s:any,m:any)=>s+m.amount,0);
   const worldOwnerCost = filteredOwnerMats.reduce((s:any,m:any)=>s+m.amount,0);
-  const ownerChargeBase = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
+  // ORIGINAL FORMULA - RAKHA HAI - niche FIX usko correct karta hai, delete nahi kiya
+  const ownerChargeBaseOriginal = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
+  // ===== FIX 21-2: Total double-jod hataya - Centring/Labour me material 2 baar nahi judega, same ghar ka Total same rahega =====
+  const ownerChargeBase = (worldMode==="centring" || worldMode==="labour") ? (tca * standardRateShow + Math.max(0, (tca*worldContractorRate) - worldContractorCost)) : ownerChargeBaseOriginal;
   const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
   const contractorCost = worldMode==="full" ? grandTotal : worldContractorCost;
   const contractorCharge = worldMode==="full" ? ownerChargeBase : tca * worldContractorRate;
@@ -339,7 +343,8 @@ export default function Page(){
     <div className="min-h-screen bg-[#02020a] text-white flex flex-col items-center p-2 pb-32 relative">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.15),transparent_60%),radial-gradient(ellipse_at_bottom,_rgba(6,182,212,0.12),transparent_60%)] pointer-events-none"></div>
       <div className="w-full max-w-[720px] relative z-10">
-        <div className="flex flex-wrap justify-between items-center gap-2 bg-gradient-to-r from-[#0f141f] to-[#141a2a] border border-[#d4af37]/20 rounded-2xl px-4 py-2.5 mb-2">
+        {/* FIX: Header sticky - Photo 4 wala kata hua fix */}
+        <div className="sticky top-2 z-50 flex flex-wrap justify-between items-center gap-2 bg-gradient-to-r from-[#0f141f] to-[#141a2a] border border-[#d4af37]/20 rounded-2xl px-4 py-2.5 mb-2">
           <span className="font-black text-[13px] break-words whitespace-normal min-w-0">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">Estimate</span></span>
           <div className="flex flex-wrap bg-black/60 rounded-full p-1 border border-[#d4af37]/20 gap-1">
             <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
@@ -347,9 +352,10 @@ export default function Page(){
           </div>
         </div>
         <Progress />
-        <div className="flex flex-wrap justify-between items-center gap-2 bg-black/60 border border-cyan-400/20 rounded-2xl px-4 py-2 mb-3">
-          <span className="text-[11px] px-2 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold break-words whitespace-normal min-w-0">Base Rs.{baseRateDisplay} | Built-up {tcaV20} Sqft | Live {getCityRate(geo)}</span>
-          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-3 py-1 rounded-full border border-[#d4af37]/30 break-words whitespace-normal min-w-0">{viewMode==="owner" ? `Rs.${finalTotal.toLocaleString()}` : `Profit: Rs.${profit.toLocaleString()}`}</span>
+        {/* FIX: Base + Total 1 line me - grid-cols-2, 2 line waste nahi */}
+        <div className="grid grid-cols-2 gap-2 bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3">
+          <span className="text-[11px] px-2 py-1.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold break-words whitespace-normal min-w-0 text-center">Base Rs.{baseRateDisplay} | Built-up {tcaV20} | Live {getCityRate(geo)}</span>
+          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-2 py-1.5 rounded-full border border-[#d4af37]/30 break-words whitespace-normal min-w-0 text-center">{viewMode==="owner" ? `Rs.${finalTotal.toLocaleString()}` : `Profit: Rs.${profit.toLocaleString()}`}</span>
         </div>
         {phase===1 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4">
@@ -358,7 +364,10 @@ export default function Page(){
               <div className="text-[10px] font-bold text-[#d4af37] break-words whitespace-normal">Contract Type</div>
               {(Object.keys(WORLD_CONTRACT_MODES) as Array<keyof typeof WORLD_CONTRACT_MODES>).map((k)=>{
                 const m = WORLD_CONTRACT_MODES[k]; const active = worldMode===k;
-                return (<button key={k} onClick={()=>setWorldMode(k as any)} className={`text-left p-4 rounded-[16px] border break-words whitespace-normal ${active ? "bg-white text-black border-white" : "bg-black/40 border-white/10 text-white/80"}`}><div className="font-black text-[12px] flex flex-wrap justify-between gap-2"><span className="break-words whitespace-normal">{viewMode==="owner" ? m.ownerLabel : m.contractorLabel}</span>{active && <span className="text-[9px] bg-black text-white px-2 py-0.5 rounded-full whitespace-nowrap">Selected</span>}</div><div className="text-[10px] opacity-70 mt-1 break-words whitespace-normal">{m.worldName}</div><div className="text-[10px] opacity-60 break-words whitespace-normal">{m.ownerDesc}</div></button>);
+                // FIX: Naam View se nahi badlega - indiaName fix hai, Desc View ke hisab se sahi aayegi
+                const fixedLabel = m.indiaName;
+                const fixedDesc = viewMode==="owner" ? m.ownerDesc : (m.contractorDesc || m.ownerDesc);
+                return (<button key={k} onClick={()=>setWorldMode(k as any)} className={`text-left p-4 rounded-[16px] border break-words whitespace-normal ${active ? "bg-white text-black border-white" : "bg-black/40 border-white/10 text-white/80"}`}><div className="font-black text-[12px] flex flex-wrap justify-between gap-2"><span className="break-words whitespace-normal">{fixedLabel}</span>{active && <span className="text-[9px] bg-black text-white px-2 py-0.5 rounded-full whitespace-nowrap">Selected</span>}</div><div className="text-[10px] opacity-70 mt-1 break-words whitespace-normal">{m.worldName}</div><div className="text-[10px] opacity-60 break-words whitespace-normal">{fixedDesc}</div></button>);
               })}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
