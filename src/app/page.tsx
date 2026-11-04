@@ -1,6 +1,6 @@
 "use client";
 // @ts-nocheck
-// V22 WORLD LEVEL - 48 KAMI FIXED - 0 CUT - ALL WRAP
+// V23 FINAL - 17 KAMI FIXED - 0 CUT - 1 WORD BHI CUT NAHI HOGA
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -39,6 +39,21 @@ function getLiveCoverage(city: string, plotArea: number){
   return Math.round(base*100)/100;
 }
 function getPLabel(storeys: string){ const s = parseInt(storeys); if(s===1) return "P1 = Ground Floor Only"; if(s===2) return "P2 = Ground + 1 Floor"; return `P${s} = Ground + ${s-1} Floors`; }
+// FIX 10 - UNIT MAP - 1 JAGAH SE SAB JAGAH SAME UNIT AAYEGA - KOI WORD CUT NAHI
+function getUnitForId(id: string){
+  if(id==='cement') return 'Bags';
+  if(id==='steel') return 'Kg';
+  if(id==='bricks') return 'Nos';
+  if(id==='sand') return 'CFT';
+  if(id==='aggregate') return 'CFT';
+  if(id==='tiles') return 'Sqft';
+  if(id==='paint') return 'Ltr';
+  if(id==='mistri') return 'Days';
+  if(id==='beldar') return 'Days';
+  if(id==='curing') return 'Days';
+  if(id==='contingency') return 'Sqft';
+  return 'Unit';
+}
 const COMPANY_MASTER: Record<string, {name:string, mult:number, label:string}[]> = {
   cement: [{name:"ULTRATECH", mult:1, label:"Rs.359"}, {name:"ACC", mult:0.97, label:"Rs.348 -3%"}, {name:"AMBUJA", mult:0.95, label:"Rs.341 -5%"}, {name:"BIRLA", mult:0.96, label:"Rs.345 -4%"}, {name:"DALMIA", mult:0.94, label:"Rs.337 -6%"}],
   steel: [{name:"KAMDHENU_NXT", mult:1, label:"Rs.68"}, {name:"TATA_TISCON", mult:1.16, label:"Rs.79 +16%"}, {name:"JINDAL", mult:1.09, label:"Rs.74 +9%"}, {name:"JSW", mult:1.12, label:"Rs.76 +12%"}, {name:"SAIL", mult:1.05, label:"Rs.71 +5%"}],
@@ -70,7 +85,7 @@ type BoxEditModal = { type:"plot"|"coverage"|"ground"|"floor"|"basic"|"standard"
 const CONTRACTOR_ONLY_IDS = ["ply","batta","jack","mistri","beldar","curing","lift","contingency"];
 const WORLD_CONTRACT_MODES: any = {
   full: { id: "full", indiaName: "With Material - Turnkey", worldName: "Turnkey Full Service", ownerLabel: "With Material - Turnkey", ownerDesc: "All Materials + Labour Included", contractorLabel: "With Material - Turnkey - 23 Items", ratePerSqft: 0, contractorGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","mistri","beldar","curing","lift","contingency"], ownerGive: [] },
-  centring: { id: "centring", indiaName: "Without Material - Formwork + Labour", worldName: "Formwork + Labour", ownerLabel: "Without Material - Material by Owner", ownerDesc: "Owner Provides Material", contractorLabel: "Without Material - Centring + Labour", ratePerSqft: 450, contractorGive: ["ply","batta","jack","mistri","beldar","curing","contingency"], ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"] },
+  centring: { id: "centring", indiaName: "Without Material - Centring + Labour", worldName: "Formwork + Labour", ownerLabel: "Without Material - Material by Owner", ownerDesc: "Owner Provides Material", contractorLabel: "Without Material - Centring + Labour", ratePerSqft: 450, contractorGive: ["ply","batta","jack","mistri","beldar","curing","contingency"], ownerGive: ["cement","steel","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","lift"] },
   labour: { id: "labour", indiaName: "Labour Only", worldName: "Labour Rate Contract", ownerLabel: "Labour Only", ownerDesc: "Labour & Supervision Only", contractorLabel: "Labour Only", ratePerSqft: 280, contractorGive: ["mistri","beldar","contingency"], ownerGive: ["cement","steel","ply","batta","jack","bricks","sand","aggregate","electrical","plumbing","tiles","paint","waterproofing","doors","windows","glass","railing","pop","sanitary","curing","lift"] },
   custom: { id: "custom", indiaName: "Item Rate - Custom BOQ", worldName: "Item Rate / Custom BOQ", ownerLabel: "Item Rate - Custom Selection", ownerDesc: "Flexible BOQ", contractorLabel: "Item Rate - Custom BOQ", ratePerSqft: 350, contractorGive: [], ownerGive: [] }
 };
@@ -159,9 +174,9 @@ export default function Page(){
       const {latitude, longitude} = pos.coords; setCurrentLatLng({lat:latitude, lng:longitude});
       try{
         const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-        const d = await rev.json(); const city = d.address?.city || d.address?.town || d.address?.village || "Nagpur";
+        const d = await rev.json(); const city = d.address?.city || d.address?.town || d.address?.village || d.address?.suburb || d.address?.state_district || geo;
         setGeo(city); setLiveLabel(`${city} - GPS Verified`); fetchData(city, latitude, longitude);
-      }catch{ setLiveLabel(`Nagpur - GPS Verified`); fetchData("Nagpur", latitude, longitude); }
+      }catch{ setLiveLabel(`${geo} - GPS Verified`); fetchData(geo, latitude, longitude); }
     },()=>{ setLiveLabel("GPS Denied"); });
   };
   const plotNum = parseInt(plotArea)||2000;
@@ -198,7 +213,14 @@ export default function Page(){
   const filteredOwnerMats = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
-  const effectiveRate = apiData.effectiveRatePerSqft || Math.round(grandTotal / (tca || 1));
+  // FIX 9 + 14 + 15 - SINGLE SOURCE OF TRUTH - TOTAL = SUM OF ALL 23 ITEMS + PROFIT
+  const totalMaterialsCost = filteredFinalMaterials.reduce((s:any,m:any)=>s + (m.qty * m.rate), 0);
+  const baseForProfit = totalMaterialsCost > 0 ? totalMaterialsCost : grandTotal;
+  const profit = Math.round(baseForProfit * (profitPercent/100));
+  const ownerChargeBase = baseForProfit + profit;
+  const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
+  const finalTotal = ownerCharge;
+  const effectiveRate = Math.round(finalTotal / (tcaV20 || 1));
   const baseRateDisplay = apiData.baseRatePerSqft || getCityRate(geo);
   const cityBaseRate = getCityRate(geo);
   const basicRateShow = Math.round(cityBaseRate*0.82);
@@ -207,14 +229,9 @@ export default function Page(){
   const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? getAnyMaterialLive(cityBaseRate, 450, 1) : worldMode==="labour" ? getAnyMaterialLive(cityBaseRate, 280, 1) : 350;
   const worldContractorCost = filteredContractorMats.reduce((s:any,m:any)=>s+m.amount,0);
   const worldOwnerCost = filteredOwnerMats.reduce((s:any,m:any)=>s+m.amount,0);
-  const ownerChargeBase = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
-  const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
-  const contractorCost = worldMode==="full" ? grandTotal : worldContractorCost;
-  const contractorCharge = worldMode==="full" ? ownerChargeBase : tca * worldContractorRate;
-  const profitBaseRaw = worldMode==="full" ? contractorCharge - grandTotal : contractorCharge - worldContractorCost;
-  const profitPositive = Math.abs(profitBaseRaw) < (contractorCost * 0.05) ? Math.round(contractorCost * (profitPercent/100)) : Math.abs(profitBaseRaw);
-  const profit = viewMode==="contractor" ? Math.round(contractorCost * (profitPercent/100)) : Math.max(profitPositive, Math.round(contractorCost * (profitPercent/100)));
-  const finalContractorCharge = viewMode==="contractor" ? contractorCost + profit : contractorCharge;
+  const contractorCost = worldContractorCost;
+  const contractorCharge = tcaV20 * worldContractorRate;
+  const finalContractorCharge = finalTotal;
   const applyEdit = () => {
     if(!edit) return;
     const updated = [...finalMaterials];
@@ -240,7 +257,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${ownerCharge.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalContractorCharge.toLocaleString()} - Profit Rs.${profit.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
+    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${finalTotal.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalTotal.toLocaleString()} - Profit Rs.${profit.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const wrapPdf = (doc:any, text:string, x:number, y:number, maxW:number, lineH:number) => {
@@ -251,7 +268,6 @@ export default function Page(){
   const handlePDF = async () => {
     const doc = new jsPDF(); const W = doc.internal.pageSize.getWidth(); const H = doc.internal.pageSize.getHeight();
     const GOLD = [180,140,30]; const DARK = [20,20,20]; const GREY = [100,100,100];
-    // Page 1 - White Premium
     doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F');
     doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.text("ABuildWise", 14, 20);
     doc.setFontSize(9); doc.setTextColor(GREY[0],GREY[1],GREY[2]); doc.setFont("helvetica","normal"); doc.text("Professional Construction Estimate", 14, 27);
@@ -261,19 +277,18 @@ export default function Page(){
     let y = 42;
     doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.text("Client Details", 14, y); y+=6;
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
-    y = wrapPdf(doc, `Name: ${clientName || "-"}`, 14, y, W-28, 5);
-    y = wrapPdf(doc, `Phone: ${clientPhone || "-"}`, 14, y, W-28, 5);
+    y = wrapPdf(doc, `Name: ${clientName || "Not Provided"}`, 14, y, W-28, 5);
+    y = wrapPdf(doc, `Phone: ${clientPhone || "Not Provided"}`, 14, y, W-28, 5);
     y = wrapPdf(doc, `Location: ${geo} | Date: ${lastUpdate} | Valid for 15 Days`, 14, y, W-28, 5);
-    y+=4; doc.setFont("helvetica","bold"); doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.text("Project Summary", 14, y); y+=6;
+    y+=2; doc.setFont("helvetica","bold"); doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.text("Project Summary", 14, y); y+=6;
     doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60); doc.setFontSize(9);
     y = wrapPdf(doc, `Plot: ${plotNum} Sqft | Coverage: ${Math.round(coverage*100)}% | Ground: ${groundPlate} Sqft | ${getPLabel(storeys)} | Built-up: ${tcaV20} Sqft`, 14, y, W-28, 5);
     y = wrapPdf(doc, `Package: ${pkg} | Mode: ${worldModeConfig.indiaName}`, 14, y, W-28, 5);
-    y+=4; doc.setFillColor(250,248,240); doc.rect(14,y,W-28,26,'F'); doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text("Estimated Cost", 20, y+9);
-    doc.setFontSize(18); doc.text(`Rs. ${(worldMode==="centring"? Math.round(tcaV20 * Math.round((getAnyMaterialLive(cityBaseRate,450,1)+getAnyMaterialLive(cityBaseRate,120,1))*(1+profitPercent/100))) : ownerCharge).toLocaleString('en-IN')}`, 20, y+20);
+    y+=2; doc.setFillColor(250,248,240); doc.rect(14,y,W-28,26,'F'); doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text("Estimated Cost", 20, y+9);
+    doc.setFontSize(18); doc.text(`Rs. ${finalTotal.toLocaleString('en-IN')}`, 20, y+20);
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(GREY[0],GREY[1],GREY[2]); doc.text(gstOn ? "With GST 18% Included" : "GST Extra", W-20, y+20, {align:'right'});
-    y+=34; doc.setFontSize(8); doc.setTextColor(GREY[0],GREY[1],GREY[2]); y = wrapPdf(doc, `Base Rate Rs.${baseRateDisplay} / Sqft | Effective Rate Rs.${effectiveRate} / Sqft | Profit ${profitPercent}%`, 14, y, W-28, 4);
+    y+=30; doc.setFontSize(8); doc.setTextColor(GREY[0],GREY[1],GREY[2]); y = wrapPdf(doc, `Base Rate Rs.${baseRateDisplay} / Sqft | Effective Rate Rs.${effectiveRate} / Sqft | Profit ${profitPercent}%`, 14, y, W-28, 4);
     doc.setFontSize(7); doc.text("Page 1 / 3", W/2, H-10, {align:'center'});
-    // Page 2 - BOQ
     doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F');
     doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.text(`Detailed BOQ - ${tcaV20} Sqft`, 14, 16);
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(GREY[0],GREY[1],GREY[2]); doc.text(`${geo} | ${pkg} Package`, 14, 22);
@@ -284,7 +299,7 @@ export default function Page(){
       if(by>260){ doc.addPage(); by=16; }
       let fixedQty = m.qty; if(m.id==="pop") fixedQty = Math.round(tcaV20*0.75); if(m.id==="sanitary") fixedQty = (parseInt(storeys)||1)*2; if(m.id==="tiles") fixedQty = Math.round(tcaV20*0.85);
       const itemName = `${m.id.toUpperCase()} - ${m.company}`;
-      const unit = m.id==='cement'?'Bags':m.id==='steel'?'Kg':m.id==='bricks'?'Nos':m.id==='sand'?'CFT':m.id==='aggregate'?'CFT':m.id==='tiles'?'Sqft':m.id==='paint'?'Ltr':m.id==='contingency'?'Days':'Unit';
+      const unit = getUnitForId(m.id);
       if(sNo%2===0){ doc.setFillColor(248,248,248); doc.rect(14,by-4,W-28,8,'F'); }
       doc.setTextColor(30,30,30); doc.setFontSize(8); doc.setFont("helvetica","normal");
       doc.text(`${sNo}`, 16, by+2);
@@ -296,25 +311,24 @@ export default function Page(){
       by += Math.max(8, itemLines.length*5+3); sNo++;
     }
     by+=4; doc.setFillColor(250,248,240); doc.rect(14,by,W-28,10,'F'); doc.setTextColor(80,60,0); doc.setFontSize(8); doc.text(`Wastage, Labour Cess and Contingency included in above items`, 16, by+6); by+=14;
-    doc.setFillColor(20,20,20); doc.rect(14,by,W-28,11,'F'); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`Grand Total: Rs. ${(worldMode==="centring"? Math.round(tcaV20 * Math.round((getAnyMaterialLive(cityBaseRate,450,1)+getAnyMaterialLive(cityBaseRate,120,1))*(1+profitPercent/100))) : ownerCharge).toLocaleString()} ${gstOn?'(With GST)':'(GST Extra)'}`, W-16, by+7, {align:'right'});
-    // Page 3 - QR
+    doc.setFillColor(20,20,20); doc.rect(14,by,W-28,11,'F'); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`Grand Total: Rs. ${finalTotal.toLocaleString()} ${gstOn?'(With GST)':'(GST Extra)'}`, W-16, by+7, {align:'right'});
     doc.addPage(); doc.setFillColor(255,255,255); doc.rect(0,0,W,H,'F');
     doc.setTextColor(DARK[0],DARK[1],DARK[2]); doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.text("QR Verification", W/2, 30, {align:'center'});
     doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
-    const verifyLine = `Scan to Verify: ${geo} - ${tcaV20} Sqft - Rs. ${ownerCharge.toLocaleString()}`;
+    const verifyLine = `Scan to Verify: ${geo} - ${tcaV20} Sqft - Rs. ${finalTotal.toLocaleString()}`;
     const vLines = doc.splitTextToSize(verifyLine, W-28); doc.text(vLines, W/2, 42, {align:'center'});
     doc.setDrawColor(200,200,200); doc.rect(W/2-35, 56, 70, 70);
-    try { const qrData = `ABuildWise-${geo}-${tcaV20}-${ownerCharge}-${lastUpdate}`; const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`; const res = await fetch(qrUrl); const blob = await res.blob(); const base64 = await new Promise<string>((resolve)=>{ const reader = new FileReader(); reader.onloadend = ()=> resolve(reader.result as string); reader.readAsDataURL(blob); }); doc.addImage(base64, 'PNG', W/2-33, 58, 66, 66); } catch(e) { doc.setFontSize(8); doc.text("QR Load Failed", W/2, 90, {align:'center'}); }
+    try { const qrData = `ABuildWise-${geo}-${tcaV20}-${finalTotal}-${lastUpdate}`; const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`; const res = await fetch(qrUrl); const blob = await res.blob(); const base64 = await new Promise<string>((resolve)=>{ const reader = new FileReader(); reader.onloadend = ()=> resolve(reader.result as string); reader.readAsDataURL(blob); }); doc.addImage(base64, 'PNG', W/2-33, 58, 66, 66); } catch(e) { doc.setFontSize(8); doc.text("QR Load Failed", W/2, 90, {align:'center'}); }
     doc.setFontSize(8); doc.setTextColor(GREY[0],GREY[1],GREY[2]); doc.text(`Verified: ${lastUpdate}`, W/2, 138, {align:'center'});
     doc.save(`ABuildWise_${geo}_${tcaV20}_${pkg}_${worldMode}.pdf`);
   };
   const Progress = () => (
     <div className="w-full mb-3">
-      <div className="flex flex-wrap justify-between gap-2 mb-2">
+      <div className="grid grid-cols-3 gap-1 mb-2">
         {[{n:1,label:"Contract + Location"},{n:2,label:"Rates"},{n:3,label:"Estimate"}].map(i=>(
-          <div key={i.n} className="flex items-center gap-1.5 min-w-0">
+          <div key={i.n} className="flex items-center gap-1 min-w-0">
             <div className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-[10px] font-black border ${phase>=i.n ? "bg-gradient-to-br from-[#d4af37] to-[#a07a1a] text-black border-[#d4af37]" : "bg-white/5 text-white/40 border-white/10"}`}>{i.n}</div>
-            <span className={`text-[9px] font-bold break-words ${phase===i.n ? "text-[#d4af37]" : "text-white/30"}`}>{i.label}</span>
+            <span className={`text-[9px] font-bold leading-tight break-words whitespace-normal min-w-0 ${phase===i.n ? "text-[#d4af37]" : "text-white/30"}`}>{i.label}</span>
           </div>
         ))}
       </div>
@@ -326,39 +340,39 @@ export default function Page(){
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.15),transparent_60%),radial-gradient(ellipse_at_bottom,_rgba(6,182,212,0.12),transparent_60%)] pointer-events-none"></div>
       <div className="w-full max-w-[720px] relative z-10">
         <div className="flex flex-wrap justify-between items-center gap-2 bg-gradient-to-r from-[#0f141f] to-[#141a2a] border border-[#d4af37]/20 rounded-2xl px-4 py-2.5 mb-2">
-          <span className="font-black text-[13px] break-words min-w-0">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">Estimate</span></span>
+          <span className="font-black text-[13px] break-words whitespace-normal min-w-0">ABuildWise <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#f0d060]">Estimate</span></span>
           <div className="flex flex-wrap bg-black/60 rounded-full p-1 border border-[#d4af37]/20 gap-1">
-            <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[10px] font-bold ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
-            <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[10px] font-bold ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredFinalMaterials.length})</button>
+            <button onClick={()=>setViewMode("owner")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
+            <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredContractorMats.length})</button>
           </div>
         </div>
         <Progress />
         <div className="flex flex-wrap justify-between items-center gap-2 bg-black/60 border border-cyan-400/20 rounded-2xl px-4 py-2 mb-3">
-          <span className="text-[11px] px-2 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold break-words">Base Rs.{baseRateDisplay} | Built-up {tcaV20} Sqft | Live {getCityRate(geo)}</span>
-          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-3 py-1 rounded-full border border-[#d4af37]/30 break-words">{viewMode==="owner" ? `Rs.${ownerCharge.toLocaleString()}` : `Profit: Rs.${profit.toLocaleString()}`}</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/20 text-[#d4af37] font-bold break-words whitespace-normal min-w-0">Base Rs.{baseRateDisplay} | Built-up {tcaV20} Sqft | Live {getCityRate(geo)}</span>
+          <span className="text-[11px] font-black bg-gradient-to-r from-[#d4af37]/20 to-[#f0d060]/20 px-3 py-1 rounded-full border border-[#d4af37]/30 break-words whitespace-normal min-w-0">{viewMode==="owner" ? `Rs.${finalTotal.toLocaleString()}` : `Profit: Rs.${profit.toLocaleString()}`}</span>
         </div>
         {phase===1 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4">
-            <div className="flex flex-wrap justify-between gap-2 mb-3"><h2 className="font-black text-[14px] text-[#d4af37] break-words">Page 1 - Contract + Location</h2><div className="text-[9px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">Step 1 / 3</div></div>
+            <div className="flex flex-wrap justify-between gap-2 mb-3"><h2 className="font-black text-[14px] text-[#d4af37] break-words whitespace-normal">Page 1 - Contract + Location</h2><div className="text-[9px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black whitespace-nowrap">Step 1 / 3</div></div>
             <div className="grid grid-cols-1 gap-2 mb-3 bg-black/40 p-3 rounded-[18px] border border-[#d4af37]/10">
-              <div className="text-[10px] font-bold text-[#d4af37] break-words">Contract Type</div>
+              <div className="text-[10px] font-bold text-[#d4af37] break-words whitespace-normal">Contract Type</div>
               {(Object.keys(WORLD_CONTRACT_MODES) as Array<keyof typeof WORLD_CONTRACT_MODES>).map((k)=>{
                 const m = WORLD_CONTRACT_MODES[k]; const active = worldMode===k;
-                return (<button key={k} onClick={()=>setWorldMode(k as any)} className={`text-left p-4 rounded-[16px] border break-words ${active ? "bg-white text-black border-white" : "bg-black/40 border-white/10 text-white/80"}`}><div className="font-black text-[12px] flex flex-wrap justify-between gap-2"><span className="break-words">{viewMode==="owner" ? m.ownerLabel : m.contractorLabel}</span>{active && <span className="text-[9px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[10px] opacity-70 mt-1 break-words">{m.worldName}</div><div className="text-[10px] opacity-60 break-words">{m.ownerDesc}</div></button>);
+                return (<button key={k} onClick={()=>setWorldMode(k as any)} className={`text-left p-4 rounded-[16px] border break-words whitespace-normal ${active ? "bg-white text-black border-white" : "bg-black/40 border-white/10 text-white/80"}`}><div className="font-black text-[12px] flex flex-wrap justify-between gap-2"><span className="break-words whitespace-normal">{viewMode==="owner" ? m.ownerLabel : m.contractorLabel}</span>{active && <span className="text-[9px] bg-black text-white px-2 py-0.5 rounded-full whitespace-nowrap">Selected</span>}</div><div className="text-[10px] opacity-70 mt-1 break-words whitespace-normal">{m.worldName}</div><div className="text-[10px] opacity-60 break-words whitespace-normal">{m.ownerDesc}</div></button>);
               })}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div className="bg-black/60 border border-[#d4af37]/50 rounded-[18px] p-3 relative">
                 <button onClick={()=>setBoxEditModal({type:"plot", value:plotArea})} className="absolute top-2 right-2 text-[9px] bg-[#d4af37] text-black px-2 py-1 rounded-full font-black">Edit</button>
-                <div className="text-[11px] font-black text-[#d4af37] break-words pr-12">Plot Area</div>
+                <div className="text-[11px] font-black text-[#d4af37] break-words whitespace-normal pr-12">Plot Area</div>
                 <input value={plotArea} onChange={e=>setPlotArea(e.target.value)} className="w-full bg-black border border-[#d4af37]/40 rounded-full px-3 py-2.5 text-[18px] font-black text-white mt-1 text-center" />
-                <div className="text-[10px] text-white/50 mt-1 break-words">{plotNum} Sqft - Editable</div>
+                <div className="text-[10px] text-white/50 mt-1 break-words whitespace-normal">{plotNum} Sqft - Editable</div>
               </div>
               <div className="bg-black/60 border border-cyan-400/50 rounded-[18px] p-3 relative">
                 <button onClick={()=>setManualCoverageAdd(null)} className="absolute top-2 right-2 text-[9px] bg-cyan-400 text-black px-2 py-1 rounded-full font-black">Auto {Math.round(liveCoverage*100)}%</button>
-                <div className="text-[11px] font-black text-cyan-300 break-words pr-16">Coverage</div>
+                <div className="text-[11px] font-black text-cyan-300 break-words whitespace-normal pr-16">Coverage</div>
                 <div className="flex items-center gap-1 mt-1"><input type="number" value={String(Math.round(coverage*100))} onChange={e=>setManualCoverageAdd(parseInt(e.target.value)/100)} className="flex-1 min-w-0 bg-black border border-cyan-400/40 rounded-full px-3 py-2.5 text-[18px] font-black text-cyan-300 text-center" /><span>%</span></div>
-                <div className="text-[10px] text-cyan-300 mt-1 break-words">{groundPlate} Sqft Ground = {plotNum} x {Math.round(coverage*100)}% - Built-up {tcaV20}</div>
+                <div className="text-[10px] text-cyan-300 mt-1 break-words whitespace-normal">{groundPlate} Sqft Ground = {plotNum} x {Math.round(coverage*100)}% - Built-up {tcaV20}</div>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
@@ -366,70 +380,70 @@ export default function Page(){
               <input value={clientPhone} onChange={e=>setClientPhone(e.target.value)} placeholder="Client Phone" className="w-full bg-black/50 border border-white/15 rounded-full px-4 py-3 text-[13px] font-bold outline-none" />
             </div>
             <div className="bg-white/[0.06] border border-white/10 rounded-[16px] p-3 mb-3">
-              <div className="flex flex-wrap justify-between items-center gap-2 mb-2"><h2 className="font-bold text-[12px] text-cyan-300 break-words">Location - Cities + GPS + Voice</h2><button onClick={getLiveLocation} className="text-[10px] px-4 py-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 text-black font-black break-words">{liveLabel}</button></div>
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-2"><h2 className="font-bold text-[12px] text-cyan-300 break-words whitespace-normal">Location - Cities + GPS + Voice</h2><button onClick={getLiveLocation} className="text-[10px] px-4 py-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 text-black font-black break-words whitespace-normal">{liveLabel}</button></div>
               <div className="relative flex gap-2">
                 <input value={geo} onChange={e=>{setGeo(e.target.value); setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),200)} className="flex-1 min-w-0 bg-black/50 border border-[#d4af37]/30 rounded-full px-5 py-4 text-[13px] font-bold outline-none" placeholder="Search City" />
                 <button onClick={startVoice} className={`w-[54px] h-[54px] shrink-0 rounded-full flex items-center justify-center font-black text-[18px] border ${isListening ? "bg-red-500" : "bg-gradient-to-br from-[#d4af37] to-[#a07a1a] border-[#d4af37] text-black"}`}>{isListening ? "●" : "🎤"}</button>
-                {show && (<div className="absolute left-0 right-[62px] top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto">{[...new Set([...CITIES_DB, geo])].filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,20).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex flex-wrap justify-between gap-2 border-b border-white/5"><span className="font-bold break-words">{c}</span><span className="text-[#d4af37] break-words">Rs.{getCityRate(c)} / sqft</span></div>)}</div>)}
+                {show && (<div className="absolute left-0 right-[62px] top-full mt-2 bg-[#1a2332] border border-[#d4af37]/30 rounded-2xl z-[9999] max-h-[240px] overflow-y-auto">{[...new Set([...CITIES_DB, geo])].filter(c=>c.toLowerCase().includes(geo.toLowerCase())).slice(0,20).map(c=><div key={c} onMouseDown={()=>{setGeo(c); setShow(false); fetchData(c);}} className="px-5 py-3 text-[12px] hover:bg-[#d4af37]/10 cursor-pointer flex flex-wrap justify-between gap-2 border-b border-white/5"><span className="font-bold break-words whitespace-normal">{c}</span><span className="text-[#d4af37] break-words whitespace-nowrap">Rs.{getCityRate(c)} / sqft</span></div>)}</div>)}
               </div>
             </div>
             <div className="bg-gradient-to-br from-[#d4af37]/20 to-[#f0d060]/10 border border-[#d4af37]/40 rounded-[18px] p-3 mb-3">
-              <div className="flex flex-wrap justify-between items-center gap-2 mb-2"><span className="text-[11px] font-black text-[#d4af37] break-words">Live Market - {geo}</span><span className="text-[9px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black">Live</span></div>
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-2"><span className="text-[11px] font-black text-[#d4af37] break-words whitespace-normal">Live Market - {geo}</span><span className="text-[9px] px-2 py-1 rounded-full bg-[#d4af37] text-black font-black whitespace-nowrap">Live</span></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className="bg-black/60 rounded-[14px] p-2.5 border border-[#d4af37]/30 relative"><button onClick={()=>setBoxEditModal({type:"construction", value:String(getCityRate(geo))})} className="absolute top-2 right-2 text-[9px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-[#d4af37] font-bold break-words pr-10">Construction Rate - {geo}</div><div className="text-[22px] font-black text-white mt-1 break-words">Rs.{getCityRate(geo)} / sqft</div><div className="text-[10px] text-white/60 mt-1 break-words">Mumbai 3300 | Bhopal 2100 | Nagpur 2000</div><div className="mt-2 grid grid-cols-2 gap-1 text-[10px]"><div className="bg-white/5 rounded-full px-2 py-1 break-words">Basic: Rs.{Math.round(getCityRate(geo)*0.82)}</div><div className="bg-white/5 rounded-full px-2 py-1 break-words">Premium: Rs.{Math.round(getCityRate(geo)*1.38)}</div></div></div>
-                <div className="bg-black/60 rounded-[14px] p-2.5 border border-cyan-400/30 relative"><button onClick={()=>setBoxEditModal({type:"contraction", value:String(getLiveTripleRates(geo).contractionRate.centering)})} className="absolute top-2 right-2 text-[9px] bg-cyan-400 text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-cyan-300 font-bold break-words pr-10">Labour Rate</div><div className="mt-1 space-y-1"><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Centering:</span><span className="text-cyan-300 break-words">Rs.{getLiveTripleRates(geo).contractionRate.centering} / sqft</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Steel Binding:</span><span className="text-cyan-300 break-words">Rs.{getLiveTripleRates(geo).contractionRate.steelBinding} / sqft</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Mistri:</span><span className="break-words">Rs.{getLiveTripleRates(geo).contractionRate.mistri} / day</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Beldar:</span><span className="break-words">Rs.{getLiveTripleRates(geo).contractionRate.beldar} / day</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Labour:</span><span className="text-cyan-300 break-words">Rs.{getLiveTripleRates(geo).contractionRate.labour} / sqft</span></div></div></div>
-                <div className="bg-black/60 rounded-[14px] p-2.5 border border-green-400/30 relative"><button onClick={()=>setBoxEditModal({type:"material", value:String(getLiveTripleRates(geo).materialRate.cement)})} className="absolute top-2 right-2 text-[9px] bg-green-400 text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-green-300 font-bold break-words pr-10">Material Rate</div><div className="mt-1 space-y-1"><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Cement:</span><span className="text-green-300 break-words">Rs.{getLiveTripleRates(geo).materialRate.cement} / Bag</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Steel:</span><span className="text-green-300 break-words">Rs.{getLiveTripleRates(geo).materialRate.steel} / Kg</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">M-Sand:</span><span className="break-words">Rs.{getLiveTripleRates(geo).materialRate.sand} / CFT</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words">Aggregate:</span><span className="break-words">Rs.{getLiveTripleRates(geo).materialRate.aggregate} / CFT</span></div></div></div>
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-[#d4af37]/30 relative"><button onClick={()=>setBoxEditModal({type:"construction", value:String(getCityRate(geo))})} className="absolute top-2 right-2 text-[9px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-[#d4af37] font-bold break-words whitespace-normal pr-10">Construction Rate - {geo}</div><div className="text-[22px] font-black text-white mt-1 break-words whitespace-normal">Rs.{getCityRate(geo)} / sqft</div><div className="text-[10px] text-white/60 mt-1 break-words whitespace-normal">Mumbai 3300 | Bhopal 2100 | Nagpur 2000</div><div className="mt-2 grid grid-cols-2 gap-1 text-[10px]"><div className="bg-white/5 rounded-full px-2 py-1 break-words whitespace-normal">Basic: Rs.{Math.round(getCityRate(geo)*0.82)}</div><div className="bg-white/5 rounded-full px-2 py-1 break-words whitespace-normal">Premium: Rs.{Math.round(getCityRate(geo)*1.38)}</div></div></div>
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-cyan-400/30 relative"><button onClick={()=>setBoxEditModal({type:"contraction", value:String(getLiveTripleRates(geo).contractionRate.centering)})} className="absolute top-2 right-2 text-[9px] bg-cyan-400 text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-cyan-300 font-bold break-words whitespace-normal pr-10">Labour Rate</div><div className="mt-1 space-y-1"><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Centering:</span><span className="text-cyan-300 break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).contractionRate.centering} / sqft</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Steel Binding:</span><span className="text-cyan-300 break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).contractionRate.steelBinding} / sqft</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Mistri:</span><span className="break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).contractionRate.mistri} / day</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Beldar:</span><span className="break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).contractionRate.beldar} / day</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Labour:</span><span className="text-cyan-300 break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).contractionRate.labour} / sqft</span></div></div></div>
+                <div className="bg-black/60 rounded-[14px] p-2.5 border border-green-400/30 relative"><button onClick={()=>setBoxEditModal({type:"material", value:String(getLiveTripleRates(geo).materialRate.cement)})} className="absolute top-2 right-2 text-[9px] bg-green-400 text-black px-2 py-0.5 rounded-full font-black">Edit</button><div className="text-[10px] text-green-300 font-bold break-words whitespace-normal pr-10">Material Rate</div><div className="mt-1 space-y-1"><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Cement:</span><span className="text-green-300 break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).materialRate.cement} / Bag</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Steel:</span><span className="text-green-300 break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).materialRate.steel} / Kg</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">M-Sand:</span><span className="break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).materialRate.sand} / CFT</span></div><div className="flex justify-between gap-2 text-[12px] font-black"><span className="break-words whitespace-normal">Aggregate:</span><span className="break-words whitespace-nowrap">Rs.{getLiveTripleRates(geo).materialRate.aggregate} / CFT</span></div></div></div>
               </div>
             </div>
             <div className="bg-black/40 border border-[#d4af37]/20 rounded-[16px] p-3 mb-3">
-              <div className="flex flex-wrap justify-between items-center gap-2 mb-2"><span className="text-[11px] font-black text-[#d4af37] break-words">Profit % + GST + Package</span><div className="flex flex-wrap gap-2 items-center"><button onClick={()=>setGstOn(!gstOn)} className={`px-3 py-1.5 rounded-full text-[10px] font-black border ${gstOn?'bg-[#d4af37] text-black':'bg-white/10 text-white/60'}`}>GST 18% {gstOn?'ON':'OFF'}</button><span className="text-[12px] font-black text-black bg-gradient-to-r from-[#d4af37] to-[#f0d060] px-3 py-1 rounded-full">{profitPercent}%</span></div></div>
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-2 min-w-0"><span className="text-[11px] font-black text-[#d4af37] break-words whitespace-normal min-w-0">Profit % + GST + Package</span><div className="flex flex-wrap gap-2 items-center"><button onClick={()=>setGstOn(!gstOn)} className={`px-3 py-1.5 rounded-full text-[10px] font-black border whitespace-nowrap ${gstOn?'bg-[#d4af37] text-black':'bg-white/10 text-white/60'}`}>GST 18% {gstOn?'ON':'OFF'}</button><span className="text-[12px] font-black text-black bg-gradient-to-r from-[#d4af37] to-[#f0d060] px-3 py-1 rounded-full whitespace-nowrap">{profitPercent}%</span></div></div>
               <input type="range" min="5" max="50" value={profitPercent} onChange={e=>setProfitPercent(parseInt(e.target.value))} className="w-full accent-[#d4af37] h-2 bg-white/10 rounded-full" />
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {[{id:"basic", label:"Basic", rate: basicRateShow},{id:"standard", label:"Standard", rate: standardRateShow},{id:"premium", label:"Premium", rate: premiumRateShow}].map(p=>(
-                  <div key={p.id} className={`rounded-[16px] border p-3 text-left relative break-words ${pkg===p.id?"bg-white text-black border-white font-black":"bg-black/40 border-white/10"}`}>
-                    <button onClick={(e)=>{e.stopPropagation(); setBoxEditModal({type:p.id as any, value:String(p.rate)})}} className="absolute top-1 right-1 text-[9px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black z-10">Edit</button>
-                    <button onClick={()=>setPkg(p.id)} className="w-full text-left mt-2"><div className="text-[11px] break-words">{p.label}</div><div className="text-[15px] break-words">Rs.{p.rate} / sqft</div><div className="text-[10px] opacity-60 mt-1 break-words">Editable</div></button>
+                  <div key={p.id} className={`rounded-[16px] border p-3 text-left relative break-words whitespace-normal min-w-0 ${pkg===p.id?"bg-white text-black border-white font-black":"bg-black/40 border-white/10"}`}>
+                    <button onClick={(e)=>{e.stopPropagation(); setBoxEditModal({type:p.id as any, value:String(p.rate)})}} className="absolute top-1 right-1 text-[9px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black z-10 whitespace-nowrap">Edit</button>
+                    <button onClick={()=>setPkg(p.id)} className="w-full text-left mt-2 min-w-0"><div className="text-[11px] break-words whitespace-normal">{p.label}</div><div className="text-[15px] break-words whitespace-normal"><span className="whitespace-nowrap">Rs.{p.rate} / sqft</span></div><div className="text-[10px] opacity-60 mt-1 break-words whitespace-normal">Editable</div></button>
                   </div>
                 ))}
               </div>
             </div>
-            <button onClick={()=>setPhase(2)} className="w-full mt-2 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black py-4 rounded-full text-[13px] break-words">Next - Rates Page</button>
+            <button onClick={()=>setPhase(2)} className="w-full mt-2 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black py-4 rounded-full text-[13px] break-words whitespace-normal">Next - Rates Page</button>
           </div>
         )}
         {phase===2 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/20 rounded-[24px] p-4">
-            <div className="flex flex-wrap justify-between gap-2 mb-3"><h2 className="font-black text-[14px] text-[#d4af37] break-words">Page 2 - Rates</h2><div className="text-[10px] px-2 py-1 rounded-full bg-white text-black font-black">Step 2 / 3 - {profitPercent}%</div></div>
+            <div className="flex flex-wrap justify-between gap-2 mb-3"><h2 className="font-black text-[14px] text-[#d4af37] break-words whitespace-normal">Page 2 - Rates</h2><div className="text-[10px] px-2 py-1 rounded-full bg-white text-black font-black whitespace-nowrap">Step 2 / 3 - {profitPercent}%</div></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-              <select value={cementCompany} onChange={e=>setCementCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[12px] font-bold break-words"><option value="ultratech">Ultratech Rs.{apiData.cementRate} / Bag</option><option value="acc">ACC Rs.{Math.round(apiData.cementRate*0.97)} / Bag</option></select>
-              <select value={steelCompany} onChange={e=>setSteelCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[12px] font-bold break-words"><option value="kamdhenu_nxt">Kamdhenu Rs.{apiData.steelRate} / Kg</option><option value="tata_tiscon">Tata Rs.{Math.round(apiData.steelRate*1.16)} / Kg</option></select>
+              <select value={cementCompany} onChange={e=>setCementCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[12px] font-bold break-words whitespace-normal"><option value="ultratech">Ultratech Rs.{apiData.cementRate} / Bag</option><option value="acc">ACC Rs.{Math.round(apiData.cementRate*0.97)} / Bag</option></select>
+              <select value={steelCompany} onChange={e=>setSteelCompany(e.target.value)} className="bg-black/60 border border-[#d4af37]/30 rounded-full px-3 py-3.5 text-[12px] font-bold break-words whitespace-normal"><option value="kamdhenu_nxt">Kamdhenu Rs.{apiData.steelRate} / Kg</option><option value="tata_tiscon">Tata Rs.{Math.round(apiData.steelRate*1.16)} / Kg</option></select>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-              <div><input value={plotArea} onChange={e=>setPlotArea(e.target.value)} placeholder="Plot Area" className="w-full bg-black/60 border border-white/10 rounded-full px-4 py-3.5 text-[13px] font-bold" /><div className="text-[10px] text-[#d4af37] mt-1 ml-3 font-bold break-words">Coverage: {Math.round(coverage*100)}% - {groundPlate} Ground - Built-up {tcaV20}</div></div>
-              <div><select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-3 py-3.5 text-[13px] font-black">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getPLabel(String(n))}</option>)}</select></div>
+              <div><div className="text-[11px] font-black text-[#d4af37] break-words whitespace-normal mb-1 ml-1">Plot Area</div><input value={plotArea} onChange={e=>setPlotArea(e.target.value)} placeholder="Plot Area" className="w-full bg-black/60 border border-white/10 rounded-full px-4 py-3.5 text-[13px] font-bold" /><div className="text-[10px] text-[#d4af37] mt-1 ml-3 font-bold break-words whitespace-normal">Coverage: {Math.round(coverage*100)}% - {groundPlate} Ground - Built-up {tcaV20}</div></div>
+              <div><div className="text-[11px] font-black text-cyan-300 break-words whitespace-normal mb-1 ml-1">Floors</div><select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black/60 border border-cyan-400/40 rounded-full px-3 py-3.5 text-[13px] font-black">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getPLabel(String(n))}</option>)}</select></div>
             </div>
-            <div className="flex flex-wrap gap-2 mt-4"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[12px] font-bold">Back</button><button onClick={()=>setPhase(3)} className="flex-[2] bg-gradient-to-r from-white to-[#e0e0e0] text-black font-black py-3.5 rounded-full text-[13px] break-words">Next - Final Estimate</button></div>
+            <div className="flex flex-wrap gap-2 mt-4"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 border border-white/10 rounded-full py-3.5 text-[12px] font-bold">Back</button><button onClick={()=>setPhase(3)} className="flex-[2] bg-gradient-to-r from-white to-[#e0e0e0] text-black font-black py-3.5 rounded-full text-[13px] break-words whitespace-normal">Next - Final Estimate</button></div>
           </div>
         )}
         {phase===3 && (
           <div className="bg-gradient-to-br from-[#0f141f]/90 to-[#0a0f1e]/90 border border-[#d4af37]/30 rounded-[24px] p-4 mb-24">
-            <div className="flex flex-wrap justify-between mb-3 items-center gap-2"><h2 className="font-black text-[13px] text-[#d4af37] break-words">Page 3 - Final Estimate</h2><button onClick={()=>setPhase(2)} className="text-[11px] px-3 py-1 rounded-full bg-white/10 border border-white/10">Back</button></div>
-            <div className="flex flex-wrap bg-black/60 rounded-full p-1 border border-[#d4af37]/20 mb-3 gap-1">
-              <button onClick={()=>setViewMode("owner")} className={`px-3 py-1.5 rounded-full text-[10px] font-black ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
-              <button onClick={()=>setViewMode("contractor")} className={`px-3 py-1.5 rounded-full text-[10px] font-black ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredFinalMaterials.length})</button>
-              <button onClick={()=>setQrShow(!qrShow)} className="px-3 py-1.5 rounded-full text-[10px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">QR {qrShow ? "Hide" : "Show"}</button>
-              <button onClick={()=>setGstOn(!gstOn)} className={`px-3 py-1.5 rounded-full text-[10px] font-black border ${gstOn?'bg-[#d4af37] text-black':'bg-white/10 text-white/60'}`}>GST {gstOn?'ON':'OFF'}</button>
+            <div className="flex flex-wrap justify-between mb-3 items-center gap-2"><h2 className="font-black text-[13px] text-[#d4af37] break-words whitespace-normal">Page 3 - Final Estimate</h2><button onClick={()=>setPhase(2)} className="text-[11px] px-3 py-1 rounded-full bg-white/10 border border-white/10 whitespace-nowrap">Back</button></div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-black/60 rounded-2xl p-1 border border-[#d4af37]/20 mb-3">
+              <button onClick={()=>setViewMode("owner")} className={`px-2 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap min-w-0 ${viewMode==="owner"?"bg-white text-black":"text-white/60"}`}>Owner ({filteredOwnerForDisplay.length})</button>
+              <button onClick={()=>setViewMode("contractor")} className={`px-2 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap min-w-0 ${viewMode==="contractor"?"bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black":"text-white/60"}`}>Contractor ({filteredContractorMats.length})</button>
+              <button onClick={()=>setQrShow(!qrShow)} className="px-2 py-1.5 rounded-full text-[10px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 whitespace-nowrap min-w-0">QR {qrShow ? "Hide" : "Show"}</button>
+              <button onClick={()=>setGstOn(!gstOn)} className={`px-2 py-1.5 rounded-full text-[10px] font-black border whitespace-nowrap min-w-0 ${gstOn?'bg-[#d4af37] text-black':'bg-white/10 text-white/60'}`}>GST {gstOn?'ON':'OFF'}</button>
             </div>
             <div className="max-h-[58vh] overflow-y-auto rounded-xl bg-black/30 p-2 border border-white/5">{(viewMode==="owner" ? filteredOwnerForDisplay : filteredFinalMaterials).map((m:any, idx:number)=>{
-              const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id); const unit = m.id==='cement'?'Bags':m.id==='steel'?'Kg':m.id==='bricks'?'Nos':m.id==='sand'?'CFT':m.id==='aggregate'?'CFT':m.id==='tiles'?'Sqft':m.id==='paint'?'Ltr':m.id==='contingency'?'Days':'Unit'; const sNo = idx+1; const cleanName = (m.name || "").replace(/^\d+\.?\s*/,'').replace(/^\d+\.\s*\d+\.\s*/,''); let displayQty = m.qty; if(m.id==="pop") displayQty = Math.round(tcaV20*0.75); if(m.id==="sanitary") displayQty = (parseInt(storeys)||1)*2;
-              return (<div key={m.id} className="flex justify-between items-start gap-2 bg-gradient-to-r from-white/[0.06] to-white/[0.03] rounded-[14px] px-3 py-3 text-[12px] mb-2 border border-white/10"><span className="flex-1 min-w-0 flex gap-2 items-start"><span className="text-[#d4af37] font-black shrink-0 mt-0.5">{sNo}.</span><span className="flex-1 min-w-0 break-words leading-[1.4]">{cleanName} - {displayQty} {unit} @ Rs.{m.rate} / {unit}</span></span><div className="flex flex-wrap gap-2 items-center shrink-0"><span className="font-black break-words">Rs.{(displayQty*m.rate).toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:displayQty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-white text-black px-3 py-1 rounded-full text-[10px] font-black">Edit</button></div></div>)
+              const realIdx = finalMaterials.findIndex((fm:any)=>fm.id===m.id); const unit = getUnitForId(m.id); const sNo = idx+1; const cleanName = (m.name || "").replace(/^\d+\.?\s*/,'').replace(/^\d+\.\s*\d+\.\s*/,''); let displayQty = m.qty; if(m.id==="pop") displayQty = Math.round(tcaV20*0.75); if(m.id==="sanitary") displayQty = (parseInt(storeys)||1)*2;
+              return (<div key={m.id} className="flex justify-between items-start gap-2 bg-gradient-to-r from-white/[0.06] to-white/[0.03] rounded-[14px] px-3 py-3 text-[12px] mb-2 border border-white/10"><span className="flex-1 min-w-0 flex gap-2 items-start"><span className="text-[#d4af37] font-black shrink-0 mt-0.5">{sNo}.</span><span className="flex-1 min-w-0 break-words whitespace-normal leading-[1.4]">{cleanName} - {displayQty} {unit} @ Rs.{m.rate} / {unit}</span></span><div className="flex flex-wrap gap-2 items-center shrink-0"><span className="font-black break-words whitespace-nowrap">Rs.{(displayQty*m.rate).toLocaleString()}</span><button onClick={()=>setEdit({idx:realIdx, qty:displayQty, rate:m.rate, company:m.company||"", cat:m.cat, id:m.id})} className="bg-white text-black px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap">Edit</button></div></div>)
             })}
-              <div className="mt-3 bg-gradient-to-r from-[#d4af37]/15 to-[#f0d060]/10 border border-[#d4af37]/30 rounded-[16px] p-3"><div className="flex flex-wrap justify-between gap-2 text-[11px] font-black"><span className="text-[#d4af37] break-words">Built-up {tcaV20} Sqft - POP {Math.round(tcaV20*0.75)} - Sanitary {(parseInt(storeys)||1)*2}</span></div><div className="flex flex-wrap justify-between gap-2 mt-2 bg-black/60 rounded-2xl px-4 py-2.5 border border-[#d4af37]/20"><span className="text-[12px] font-black text-[#d4af37] break-words">Profit {profitPercent}% : Rs.{profit.toLocaleString()} - Final: Rs.{finalContractorCharge.toLocaleString()}</span></div></div>
             </div>
-            {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px]"><h3 className="font-black text-[13px] mb-3 text-[#d4af37] break-words">Edit - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[10px] opacity-60 font-bold break-words">Company / Brand - 5 Options - {geo}</div><select value={edit.company} onChange={e=>{ const newCompany = e.target.value; const k1 = (edit.id || "").toLowerCase().trim(); const k2 = (edit.cat || "").toLowerCase().trim(); const list = (COMPANY_MASTER[k1] || COMPANY_MASTER[k2] || []).slice(0,5); if(list.length===0) { setEdit({...edit, company:newCompany}); return; } const oldBrand = list.find((c:any)=>c.name===edit.company) || list[0]; const newBrand = list.find((c:any)=>c.name===newCompany) || list[0]; const cityRateForEdit = getCityRate(geo); const currentBaseMarketRate = oldBrand.mult ? (edit.rate / oldBrand.mult) : edit.rate; const cityBase = currentBaseMarketRate / getPureLiveFactor(cityRateForEdit); const newLiveMarketRate = getAnyMaterialLive(cityRateForEdit, cityBase, newBrand.mult); setEdit({...edit, company:newCompany, rate:newLiveMarketRate}); }} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[13px] font-bold break-words"><option value={edit.company}>{edit.company} - Rs.{edit.rate}</option>{(COMPANY_MASTER[edit.id]||COMPANY_MASTER[edit.cat]||COMPANY_MASTER["cement"]).slice(0,5).map((c:any)=><option key={c.name} value={c.name}>{c.name} - {c.label}</option>)}</select></div><div><div className="text-[10px] opacity-60 font-bold break-words">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[13px] font-bold" /><div className="text-[11px] text-cyan-300 mt-1 break-words">{edit.id==="pop"?`Built-up ${tcaV20} x 75% = ${Math.round(tcaV20*0.75)}`:`Floors ${storeys} x 2 = ${edit.qty}`}</div></div><div><div className="text-[10px] opacity-60 font-bold break-words">Rate</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-[#d4af37]/15 border border-[#d4af37]/50 rounded-full px-4 py-3 text-[15px] font-black text-[#f0d060]" /><div className="text-[13px] font-black text-white mt-2 break-words">Rs.{(edit.qty*edit.rate).toLocaleString()} = {edit.qty} x Rs.{edit.rate}</div></div></div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[12px] font-bold">Cancel</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[12px]">Apply</button></div></div></div>)}
-            <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[12px] break-words">WhatsApp</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[12px] break-words">Download PDF</button></div>
+            <div className="mt-3 bg-gradient-to-r from-[#d4af37]/15 to-[#f0d060]/10 border border-[#d4af37]/30 rounded-[16px] p-3"><div className="flex flex-wrap justify-between gap-2 text-[11px] font-black"><span className="text-[#d4af37] break-words whitespace-normal">Built-up {tcaV20} Sqft - POP {Math.round(tcaV20*0.75)} - Sanitary {(parseInt(storeys)||1)*2}</span></div><div className="flex flex-wrap justify-between gap-2 mt-2 bg-black/60 rounded-2xl px-4 py-2.5 border border-[#d4af37]/20"><span className="text-[12px] font-black text-[#d4af37] break-words whitespace-normal">Profit {profitPercent}% : Rs.{profit.toLocaleString()} - Final: Rs.{finalTotal.toLocaleString()}</span></div></div>
+            {edit && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"><div className="bg-gradient-to-br from-[#1e293b] to-[#141a2a] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[360px]"><h3 className="font-black text-[13px] mb-3 text-[#d4af37] break-words whitespace-normal">Edit - {finalMaterials[edit.idx]?.id.toUpperCase()}</h3><div className="space-y-3"><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Company / Brand - 5 Options - {geo}</div><select value={edit.company} onChange={e=>{ const newCompany = e.target.value; const k1 = (edit.id || "").toLowerCase().trim(); const k2 = (edit.cat || "").toLowerCase().trim(); const list = (COMPANY_MASTER[k1] || COMPANY_MASTER[k2] || []).slice(0,5); if(list.length===0) { setEdit({...edit, company:newCompany}); return; } const oldBrand = list.find((c:any)=>c.name===edit.company) || list[0]; const newBrand = list.find((c:any)=>c.name===newCompany) || list[0]; const cityRateForEdit = getCityRate(geo); const currentBaseMarketRate = oldBrand.mult ? (edit.rate / oldBrand.mult) : edit.rate; const cityBase = currentBaseMarketRate / getPureLiveFactor(cityRateForEdit); const newLiveMarketRate = getAnyMaterialLive(cityRateForEdit, cityBase, newBrand.mult); setEdit({...edit, company:newCompany, rate:newLiveMarketRate}); }} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[13px] font-bold break-words whitespace-normal"><option value={edit.company}>{edit.company} - Rs.{edit.rate}</option>{(COMPANY_MASTER[edit.id]||COMPANY_MASTER[edit.cat]||COMPANY_MASTER["cement"]).slice(0,5).map((c:any)=><option key={c.name} value={c.name}>{c.name} - {c.label}</option>)}</select></div><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Quantity</div><input type="number" value={edit.qty} onChange={e=>setEdit({...edit, qty: parseInt(e.target.value)||0})} className="w-full bg-black/50 border border-cyan-400/30 rounded-full px-4 py-3 text-[13px] font-bold" /><div className="text-[11px] text-cyan-300 mt-1 break-words whitespace-normal">{edit.id==="pop"?`Built-up ${tcaV20} x 75% = ${Math.round(tcaV20*0.75)}`:`Floors ${storeys} x 2 = ${edit.qty}`}</div></div><div><div className="text-[10px] opacity-60 font-bold break-words whitespace-normal">Rate</div><input type="number" value={edit.rate} onChange={e=>setEdit({...edit, rate: parseInt(e.target.value)||0})} className="w-full bg-[#d4af37]/15 border border-[#d4af37]/50 rounded-full px-4 py-3 text-[15px] font-black text-[#f0d060]" /><div className="text-[13px] font-black text-white mt-2 break-words whitespace-normal">Rs.{(edit.qty*edit.rate).toLocaleString()} = {edit.qty} x Rs.{edit.rate}</div></div></div><div className="flex gap-2 mt-5"><button onClick={()=>setEdit(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[12px] font-bold">Cancel</button><button onClick={applyEdit} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[12px]">Apply</button></div></div></div>)}
+            <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={handleWhatsApp} className="bg-gradient-to-r from-green-600 to-green-500 text-white font-black py-3 rounded-full text-[12px] break-words whitespace-normal">WhatsApp</button><button onClick={handlePDF} className="bg-gradient-to-r from-white to-[#f0f0f0] text-black font-black py-3 rounded-full text-[12px] break-words whitespace-normal">Download PDF</button></div>
           </div>
         )}
-        {boxEditModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9998]"><div className="bg-[#1e293b] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[320px]"><h3 className="font-black text-[13px] mb-3 text-[#d4af37] break-words">Edit {boxEditModal.type.toUpperCase()}</h3><input type="text" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value: e.target.value})} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[14px] font-bold" /><div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[12px]">Cancel</button><button onClick={applyBoxEditModal} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[12px]">Save</button></div></div></div>)}
+        {boxEditModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9998]"><div className="bg-[#1e293b] border border-[#d4af37]/30 rounded-[20px] p-5 w-full max-w-[320px]"><h3 className="font-black text-[13px] mb-3 text-[#d4af37] break-words whitespace-normal">Edit {boxEditModal.type.toUpperCase()}</h3><input type="text" value={boxEditModal.value} onChange={e=>setBoxEditModal({...boxEditModal, value: e.target.value})} className="w-full bg-black/50 border border-[#d4af37]/40 rounded-full px-4 py-3 text-[14px] font-bold" /><div className="flex gap-2 mt-4"><button onClick={()=>setBoxEditModal(null)} className="flex-1 bg-white/10 rounded-full py-3 text-[12px]">Cancel</button><button onClick={applyBoxEditModal} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d060] text-black font-black rounded-full py-3 text-[12px]">Save</button></div></div></div>)}
       </div>
     </div>
   );
