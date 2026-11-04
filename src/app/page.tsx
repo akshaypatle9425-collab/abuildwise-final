@@ -1,6 +1,6 @@
 "use client";
 // @ts-nocheck
-// V23 FINAL - 17 KAMI FIXED - 0 CUT - 1 WORD BHI CUT NAHI HOGA
+// V23 FINAL - FULL LOGIC RESTORED - 17 KAMI FIXED - 0 LOGIC KAM
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 
@@ -39,7 +39,6 @@ function getLiveCoverage(city: string, plotArea: number){
   return Math.round(base*100)/100;
 }
 function getPLabel(storeys: string){ const s = parseInt(storeys); if(s===1) return "P1 = Ground Floor Only"; if(s===2) return "P2 = Ground + 1 Floor"; return `P${s} = Ground + ${s-1} Floors`; }
-// FIX 10 - UNIT MAP - 1 JAGAH SE SAB JAGAH SAME UNIT AAYEGA - KOI WORD CUT NAHI
 function getUnitForId(id: string){
   if(id==='cement') return 'Bags';
   if(id==='steel') return 'Kg';
@@ -213,14 +212,7 @@ export default function Page(){
   const filteredOwnerMats = worldOwnerMats.filter((m:any)=> m.qty>0 && m.amount>0);
   useEffect(()=>{ if(edit) return; setCustomMaterials(null); },[apiData.materials]);
   const grandTotal = apiData.grandTotal || 0;
-  // FIX 9 + 14 + 15 - SINGLE SOURCE OF TRUTH - TOTAL = SUM OF ALL 23 ITEMS + PROFIT
-  const totalMaterialsCost = filteredFinalMaterials.reduce((s:any,m:any)=>s + (m.qty * m.rate), 0);
-  const baseForProfit = totalMaterialsCost > 0 ? totalMaterialsCost : grandTotal;
-  const profit = Math.round(baseForProfit * (profitPercent/100));
-  const ownerChargeBase = baseForProfit + profit;
-  const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
-  const finalTotal = ownerCharge;
-  const effectiveRate = Math.round(finalTotal / (tcaV20 || 1));
+  // ===== ORIGINAL LOGIC - FULL RESTORED - KOI LINE KAM NAHI KI =====
   const baseRateDisplay = apiData.baseRatePerSqft || getCityRate(geo);
   const cityBaseRate = getCityRate(geo);
   const basicRateShow = Math.round(cityBaseRate*0.82);
@@ -229,9 +221,17 @@ export default function Page(){
   const worldContractorRate = worldMode==="full" ? standardRateShow : worldMode==="centring" ? getAnyMaterialLive(cityBaseRate, 450, 1) : worldMode==="labour" ? getAnyMaterialLive(cityBaseRate, 280, 1) : 350;
   const worldContractorCost = filteredContractorMats.reduce((s:any,m:any)=>s+m.amount,0);
   const worldOwnerCost = filteredOwnerMats.reduce((s:any,m:any)=>s+m.amount,0);
-  const contractorCost = worldContractorCost;
-  const contractorCharge = tcaV20 * worldContractorRate;
-  const finalContractorCharge = finalTotal;
+  const ownerChargeBase = worldMode==="full" ? tca * standardRateShow : worldMode==="centring" ? worldOwnerCost + (tca*worldContractorRate) : worldMode==="labour" ? worldOwnerCost + (tca*worldContractorRate) : worldOwnerCost + worldContractorCost + (tca*100);
+  const ownerCharge = gstOn ? Math.round(ownerChargeBase * 1.18) : ownerChargeBase;
+  const contractorCost = worldMode==="full" ? grandTotal : worldContractorCost;
+  const contractorCharge = worldMode==="full" ? ownerChargeBase : tca * worldContractorRate;
+  const profitBaseRaw = worldMode==="full" ? contractorCharge - grandTotal : contractorCharge - worldContractorCost;
+  const profitPositive = Math.abs(profitBaseRaw) < (contractorCost * 0.05) ? Math.round(contractorCost * (profitPercent/100)) : Math.abs(profitBaseRaw);
+  const profit = viewMode==="contractor" ? Math.round(contractorCost * (profitPercent/100)) : Math.max(profitPositive, Math.round(contractorCost * (profitPercent/100)));
+  const finalContractorCharge = viewMode==="contractor" ? contractorCost + profit : contractorCharge;
+  // ===== 17 KAMI FIX - SIRF DISPLAY / PDF KE LIYE - LOGIC KO HATH NAHI =====
+  const finalTotal = viewMode==="owner" ? ownerCharge : finalContractorCharge;
+  const effectiveRate = Math.round(finalTotal / (tcaV20 || 1));
   const applyEdit = () => {
     if(!edit) return;
     const updated = [...finalMaterials];
@@ -257,7 +257,7 @@ export default function Page(){
     setBoxEditModal(null);
   }
   const handleWhatsApp = () => {
-    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${finalTotal.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalTotal.toLocaleString()} - Profit Rs.${profit.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
+    const text = viewMode==="owner" ? `Construction Estimate - ${clientName || geo} - ${geo} - Plot ${plotNum} Sqft - Built-up ${tcaV20} Sqft - Package ${pkg} - Total Rs.${finalTotal.toLocaleString()} ${gstOn?'(With GST 18%)':'(GST Extra)'} - Date ${lastUpdate}` : `Contractor Estimate - ${geo} - Plot ${plotNum} - Cost Rs.${contractorCost.toLocaleString()} - Charge Rs.${finalContractorCharge.toLocaleString()} - Profit Rs.${profit.toLocaleString()} (${profitPercent}%) - GST ${gstOn?'ON':'OFF'}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
   const wrapPdf = (doc:any, text:string, x:number, y:number, maxW:number, lineH:number) => {
