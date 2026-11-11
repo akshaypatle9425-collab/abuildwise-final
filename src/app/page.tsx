@@ -30,6 +30,7 @@ const COMP: Record<string,string[]> = {
   electrical:["Polycab - Best","Havells","Finolex","RR Kabel - Budget"],
   plumbing:["Ashirvad CPVC - Best","Astral CPVC","Supreme CPVC","Prince CPVC - Budget"],
   tiles:["Kajaria 2x2 - Best","Johnson 2x2","Somany 2x2","Orient Bell - Budget"],
+  marble:["Italian Statuario - Best","Italian Carrara","Italian Botticino","Indian Marble - Budget"],
   paint:["Asian Paints Apex - Best","Berger WeatherCoat","Nerolac Excel","Dulux Weathershield - Budget"],
   waterproofing:["Dr Fixit - Best","Fosroc","Pidilite","Sika - Budget"],
   doors:["Teak Wood - Best","Sagwan Wood","WPC Door","Flush Door - Budget"],
@@ -62,6 +63,7 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("electrical","Electrical", Math.round(built*0.80), 85*f, "electrical", true, "Sqft", 0.80),
     mk("plumbing","Plumbing", Math.round(built*0.80), 90*f, "plumbing", true, "Sqft", 0.80),
     mk("tiles","Tiles", Math.round(built*0.85), 110*f, "tiles", true, "Sqft", 0.85),
+    mk("marble","Italian Marble", Math.round(built*0.85), 350*f, "marble", true, "Sqft", 0.85),
     mk("paint","Paint", Math.round(built*0.12), 220*(pkgRate/2000), "paint", true, "Ltr", 0.12),
     mk("waterproofing","Waterproofing", Math.round(built*0.50), 45, "waterproofing", true, "Sqft", 0.50),
     mk("doors","Doors", doorsQty, 12000*(pkgRate/2000), "doors", true, "Nos", 0),
@@ -85,6 +87,7 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
 export default function Page(){
   const [phase,setPhase]=useState(1);
   const [geo,setGeo]=useState("Nagpur");
+  const [showCityDrop,setShowCityDrop]=useState(false);
   const [plot,setPlot]=useState("2000");
   const [cov,setCov]=useState(64);
   const [storeys,setStoreys]=useState("1");
@@ -95,7 +98,7 @@ export default function Page(){
   const [profitP,setProfitP]=useState(18);
   const [gstOn,setGstOn]=useState(false);
   const [view,setView]=useState<"owner"|"contractor"|"all">("all");
-  const [contract,setContract]=useState<"full"|"centring"|"labour">("centring");
+  const [contract,setContract]=useState<"full"|"centring"|"labour"|"item">("centring");
   const [showUSD,setShowUSD]=useState(false);
   const [bigText,setBigText]=useState(false);
   const [gpsOk,setGpsOk]=useState(false);
@@ -120,6 +123,7 @@ export default function Page(){
   const pkgRate = pkgRates[pkg as keyof typeof pkgRates];
   const sqmt = (built115*0.092903).toFixed(1);
   const storeysNum = parseInt(storeys)||1;
+  const filteredCities = geo.trim() ? CITIES.filter(c=>c.toLowerCase().startsWith(geo.toLowerCase().trim())) : [];
   const rebuildBOQ = (preserve:boolean=true)=>{
     const fresh = BASE_MATS(built115, cityRate, bhk, storeysNum, pkgRate, contract);
     if(preserve && mats.length>0){
@@ -191,12 +195,12 @@ export default function Page(){
   <div className={`min-h-screen bg-[#02020a] text-white p-2 pb-32 ${bigText?"text-[15px]":""}`}>
     <div className="max-w-[720px] mx-auto">
       <div className="bg-[#0f141f] border border-[#d4af37]/20 rounded-2xl px-4 py-2 mb-2 text-center">
-        <b>{COMPANY.name} <span className="text-[#d4af37]">- V33</span></b>
+        <b>{COMPANY.name} <span className="text-[#d4af37]">- V34</span></b>
         <div className="text-[11px] text-white/70">{COMPANY.city} | {COMPANY.phone} | GSTIN: {COMPANY.gstin}</div>
         <div className="text-[11px]">Quote: {quoteNo} | Date: {today} | Valid: {validTill} | {version} <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">New Quote</button></div>
       </div>
       <div className="flex justify-between items-center bg-[#0f141f] border rounded-2xl px-4 py-2.5 mb-2">
-        <b>Estimate <span className="text-[#d4af37]">V33</span></b>
+        <b>Estimate <span className="text-[#d4af37]">V34</span></b>
         <div className="flex bg-black rounded-full p-1 gap-1">
           <button onClick={()=>setView("all")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="all"?"bg-white text-black":"text-white/70"}`}>All: {mats.length}</button>
           <button onClick={()=>setView("owner")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="owner"?"bg-white text-black":"text-white/70"}`}>Owner: {ownerMats.length}</button>
@@ -209,7 +213,7 @@ export default function Page(){
         <button onClick={()=>rebuildBOQ(false)} className="px-3 py-1 rounded-full bg-[#d4af37] text-black text-[12px] font-bold">🔄 Rebuild BOQ</button>
         <span className="text-[12px] text-green-400 font-bold py-1">✓ Draft Saved | {version} | Auto-Rebuild ON</span>
       </div>
-      <div className="grid grid-cols-4 gap-1 mb-2">{[1,2,3,4].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract":n===2?"2. Location":n===3?"3. Rates":"4. Final"}</button>)}</div>
+      <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract":n===2?"2. Location":"3. Final"}</button>)}</div>
       <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center">
         <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today}</div>
         <div className="font-black text-[18px]">Total Rs.{inr(finalTotal)}{showUSD?` = $${usd} (Approx @ ${USD_RATE})`:""}</div>
@@ -224,6 +228,7 @@ export default function Page(){
           <button onClick={()=>setContract("full")} className={`text-left p-4 rounded-[16px] border ${contract==="full"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">With Material - Turnkey {contract==="full"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">All Materials + Labour Included - 550/sqft Labour</div></button>
           <button onClick={()=>setContract("centring")} className={`text-left p-4 rounded-[16px] border ${contract==="centring"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">Without Material - Centering + Labour {contract==="centring"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Owner Provides Material - 450/sqft Labour</div></button>
           <button onClick={()=>setContract("labour")} className={`text-left p-4 rounded-[16px] border ${contract==="labour"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">Labour Only {contract==="labour"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour</div></button>
+          <button onClick={()=>setContract("item")} className={`text-left p-4 rounded-[16px] border ${contract==="item"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">Item - Item Rate {contract==="item"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Har Kaam ka Alag Item Rate - Brickwork / Plaster / Flooring Alag - No Extra Labour</div></button>
         </div>
         <div className="text-[12px] font-bold text-[#d4af37] mb-2">BHK - Ek hi chunenge</div>
         <div className="grid grid-cols-3 gap-2 mb-3">{[1,2,3].map(b=>(<button key={b} onClick={()=>setBhk(b)} className={`py-3 rounded-[16px] border font-black ${bhk===b?"bg-white text-black":"bg-[#1a2332]"}`}>{b} BHK<br/><span className="text-[11px] font-normal">Doors: {b===1?6:b===2?8:10}</span></button>))}</div>
@@ -243,8 +248,17 @@ export default function Page(){
         <h2 className="font-black text-[#d4af37] mb-3">Page 2 - Location + Package</h2>
         <div className="bg-white/5 border rounded-[16px] p-3 mb-3">
           <div className="flex justify-between"><b className="text-[13px] text-cyan-300">Location + GPS + Site Photo</b><button onClick={gps} className="text-[12px] px-3 py-1 rounded-full bg-cyan-400 text-black font-black">{gpsOk?`${geo} - GPS Verified`:"Use GPS"}</button></div>
-          <input value={geo} onChange={e=>setGeo(e.target.value)} className="w-full bg-black border rounded-full px-4 py-3 mt-2" placeholder="Search City" />
-          <div className="flex flex-wrap gap-1 mt-2">{CITIES.slice(0,12).map(c=><button key={c} onClick={()=>setGeo(c)} className="text-[11px] bg-white/10 px-2 py-1 rounded-full">{c} Rs.{getRate(c)}</button>)}</div>
+          <div className="relative">
+            <input value={geo} onChange={e=>{setGeo(e.target.value); setShowCityDrop(true);}} onFocus={()=>setShowCityDrop(true)} onBlur={()=>setTimeout(()=>setShowCityDrop(false),200)} className="w-full bg-black border rounded-full px-4 py-3 mt-2" placeholder="Search City - B likho to B wali City aayegi" />
+            {showCityDrop && filteredCities.length>0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a2332] border rounded-2xl overflow-hidden z-20 max-h-[220px] overflow-y-auto">
+                {filteredCities.map(c=>(
+                  <button key={c} onMouseDown={()=>{setGeo(c); setShowCityDrop(false);}} className="w-full text-left px-4 py-2.5 text-[13px] border-b border-white/10 last:border-0 hover:bg-white/10">{c} - Rs.{getRate(c)} / sqft</button>
+                ))}
+              </div>
+            )}
+            {showCityDrop && geo.trim() && filteredCities.length===0 && <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a2332] border rounded-2xl px-4 py-2.5 text-[12px] text-white/70 z-20">Koi City nahi mili - Rate Rs.1700 Default lagega</div>}
+          </div>
           <label className="block mt-3 text-[12px] font-bold">📸 Site Photo Upload - PDF me bhi jayegi {sitePhoto && <span className="text-green-400">✓ Photo Selected</span>}</label>
           <input type="file" accept="image/*" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setSitePhoto(String(r.result)); r.readAsDataURL(f); } }} className="w-full bg-black border rounded-full px-3 py-2 mt-1 text-[12px]" />
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
@@ -256,11 +270,12 @@ export default function Page(){
           <div className="grid grid-cols-3 gap-2 mt-3">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3"><div className="text-[12px] capitalize">{k}</div><div className="font-black">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>
         </div>
         <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3">⚠️ Approximate. Final may vary 10-15%. Valid till {validTill} (15 days).</div>
-        <div className="flex gap-2"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 rounded-full py-3.5">Back</button><button onClick={()=>{if(validate()) setPhase(3)}} className="flex-[2] bg-white text-black font-black py-3.5 rounded-full">Next - Rates →</button></div>
+        <div className="flex gap-2"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 rounded-full py-3.5">Back</button><button onClick={()=>{if(validate()) setPhase(3)}} className="flex-[2] bg-white text-black font-black py-3.5 rounded-full">Next - Final →</button></div>
       </div>}
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
-        <h2 className="font-black text-[#d4af37] mb-1">Page 3 - Rates - Har Item me 4 Company</h2>
-        <div className="text-[12px] mb-3">Company badalte hi Rate + Total khud badlega - Best wali pehle hai, Budget wali last me</div>
+        <div className="flex justify-between mb-3"><h2 className="font-black text-[#d4af37]">Page 3 - Final - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10">Back</button></div>
+        <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ GST Extra"} = Rs.{inr(finalTotal)} | {today} | Valid: {validTill}</div>
+        <div className="text-[12px] mb-3">Rates - Har Item me 4 Company - Company badalte hi Rate + Total khud badlega - Best wali pehle hai, Budget wali last me</div>
         <div className="grid gap-2 mb-3">{mats.map(m=>(
           <div key={m.id} className="bg-white/5 border rounded-[16px] p-3">
             <div className="flex justify-between text-[13px]"><b>{m.name}</b><span>{m.qty} {m.unit} x Rs.{m.rate} = <b>Rs.{inr(m.qty*m.rate)}</b></span></div>
@@ -270,11 +285,6 @@ export default function Page(){
             <div className="text-[11px] text-white/60 mt-1">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"}</div>
           </div>
         ))}</div>
-        <div className="flex gap-2"><button onClick={()=>setPhase(2)} className="flex-1 bg-white/10 rounded-full py-3.5">Back</button><button onClick={()=>{if(validate()) setPhase(4)}} className="flex-[2] bg-white text-black font-black py-3.5 rounded-full">Next - Final →</button></div>
-      </div>}
-      {phase===4 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
-        <div className="flex justify-between mb-3"><h2 className="font-black text-[#d4af37]">Page 4 - Final - {quoteNo}</h2><button onClick={()=>setPhase(3)} className="text-[12px] px-3 py-1 rounded-full bg-white/10">Back</button></div>
-        <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ GST Extra"} = Rs.{inr(finalTotal)} | {today} | Valid: {validTill}</div>
         <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"}</span></td><td className="text-right">{m.qty} {m.unit} x Rs.{m.rate} = <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
         {sitePhoto && <div className="mt-3"><b className="text-[12px]">Site Photo - PDF me bhi jayegi</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
         <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px]"><b className="text-[#d4af37]">Payment</b><div>30% Rs.{inr(Math.round(finalTotal*0.30))} | 30% Rs.{inr(Math.round(finalTotal*0.30))} | 30% Rs.{inr(Math.round(finalTotal*0.30))} | 10% Rs.{inr(Math.round(finalTotal*0.10))}</div><b className="text-[#d4af37] block mt-2">Timeline: {timeline} | Valid: {validTill}</b><div className="mt-1">NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior</div><div className="mt-1">{COMPANY.name} | {COMPANY.phone} | GSTIN: {COMPANY.gstin} | Signature: Client ____ Contractor ____</div></div>
