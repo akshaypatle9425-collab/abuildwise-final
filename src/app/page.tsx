@@ -1,10 +1,4 @@
 "use client";
-"use client";
-// V31.2 FINAL - FIXED...
-import { useState, useEffect, useMemo, useRef } from "react";
-// V31.2 FINAL - FIXED...
-import { useState, useEffect, useMemo, useRef } from "react";
-// V31.2 FINAL - FIXED - Prerender Error Fix + inr Safety + catch Fix - 3 Parts
 import { useState, useEffect, useMemo, useRef } from "react";
 import { jsPDF } from "jspdf";
 const COMPANY = { name:"ABuildWise Construction", city:"Nagpur, Maharashtra", phone:"+91 98230 00000", gstin:"27XXXXX1234X1Z5" };
@@ -85,10 +79,10 @@ export default function Page(){
   const [editMat,setEditMat]=useState<number|null>(null);
   const [eQty,setEQty]=useState(""); const [eMatRate,setEMatRate]=useState("");
   const [sitePhoto,setSitePhoto]=useState<string>("");
-  const [quoteNo,setQuoteNo]=useState(()=>makeQuote());
+  const [quoteNo,setQuoteNo]=useState("AW-2026-0000");
+  const [today,setToday]=useState("");
+  const [validTill,setValidTill]=useState("");
   const editedIds = useRef<Set<string>>(new Set());
-  const today = new Date().toLocaleDateString("en-IN");
-  const validTill = new Date(Date.now()+15*24*60*60*1000).toLocaleDateString("en-IN");
   const cityRate = getRate(geo);
   const plotNum = parseInt(plot)||0;
   const ground = Math.round(plotNum*cov/100);
@@ -105,7 +99,8 @@ export default function Page(){
       const merged = fresh.map(fm=>{ const old = map.get(fm.id); if(old && editedIds.current.has(fm.id)) return {...fm, qty: old.qty, rate: old.rate}; return fm; });
       setMats(merged);
     } else setMats(fresh);
-  };  const ownerMats = mats.filter(m=>m.owner);
+  };
+  const ownerMats = mats.filter(m=>m.owner);
   const contMats = mats.filter(m=>!m.owner);
   const ownerCost = ownerMats.reduce((s,m)=>s+m.qty*m.rate,0);
   const contCost = contMats.reduce((s,m)=>s+m.qty*m.rate,0);
@@ -152,6 +147,14 @@ export default function Page(){
     doc.text(`Signature: Client __________  Contractor __________  Date: ${today}`,14,y);
     doc.save(`${COMPANY.name}_${quoteNo}_${built115}.pdf`);
   };
+  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); try{ localStorage.setItem("aw_quote_v31",q); }catch(e){} alert(`Naya Quote: ${q}`); };
+  useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+15*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
+  useEffect(()=>{ rebuildBOQ(false); // eslint-disable-next-line
+  },[]);
+  useEffect(()=>{ if(mats.length===0) return; const t=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(t); // eslint-disable-next-line
+  },[geo,pkg,contract,bhk,storeys,plot,cov,pkgRates]);
+  useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v31")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v31")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone); }catch(e){} },[]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_draft_v31", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
   return (
   <div className={`min-h-screen bg-[#02020a] text-white p-2 pb-32 ${bigText?"text-[15px]":""}`}>
     <div className="max-w-[720px] mx-auto">
@@ -174,11 +177,22 @@ export default function Page(){
         <button onClick={()=>rebuildBOQ(false)} className="px-3 py-1 rounded-full bg-[#d4af37] text-black text-[12px] font-bold">🔄 Rebuild BOQ</button>
         <span className="text-[12px] text-green-400 font-bold py-1">✓ Draft Saved | {version} | Auto-Rebuild ON</span>
       </div>
-      <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><div key={n} className={`text-center text-[12px] py-1.5 r      {phase===1 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
+      <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><div key={n} className={`text-center text-[12px] py-1.5 rounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"Contract + Location":n===2?"Rates":"Estimate"}</div>)}</div>
+      <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center">
+        <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today}</div>
+        <div className="font-black text-[16px]">Total Rs.{inr(finalTotal)}{showUSD?` = $${usd} (Approx @ ${USD_RATE})`:""}</div>
+        <div className="text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} ({labourRate}/sqft) + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)}</div>
+        <div className="text-[12px] text-cyan-300">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:"GST Extra"} | Effective Rs.{effRate}/sqft</div>
+        <div className="text-[11px] italic">{inWords(finalTotal)}</div>
+        <div className="text-[11px] text-[#d4af37]">BOQ Sum = Grand Total - Koi Fark Nahi | {profitLabel}</div>
+      </div>
+      {phase===1 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
         <h2 className="font-black text-[#d4af37] mb-3">Page 1 - Contract + Location</h2>
-        <div className="grid gap-2 mb-3">{[["full","With Material - Turnkey","All Materials + Labour Included - 550/sqft Labour"],["centring","Without Material - Centering + Labour","Owner Provides Material - 450/sqft Labour"],["labour","Labour Only","Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour"]].map(([id,label,desc])=>(
-          <button key={id} onClick={()=>{setContract(id as any);}} className={`text-left p-4 rounded-[16px] border ${contract===id?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{label} {contract===id&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">{desc}</div></button>
-        ))}</div>
+        <div className="grid gap-2 mb-3">
+          <button onClick={()=>setContract("full")} className={`text-left p-4 rounded-[16px] border ${contract==="full"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">With Material - Turnkey {contract==="full"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">All Materials + Labour Included - 550/sqft Labour</div></button>
+          <button onClick={()=>setContract("centring")} className={`text-left p-4 rounded-[16px] border ${contract==="centring"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">Without Material - Centering + Labour {contract==="centring"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Owner Provides Material - 450/sqft Labour</div></button>
+          <button onClick={()=>setContract("labour")} className={`text-left p-4 rounded-[16px] border ${contract==="labour"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">Labour Only {contract==="labour"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour</div></button>
+        </div>
         <div className="text-[12px] font-bold text-[#d4af37] mb-2">BHK - Ek hi chunenge</div>
         <div className="grid grid-cols-3 gap-2 mb-3">{[1,2,3].map(b=>(<button key={b} onClick={()=>setBhk(b)} className={`py-3 rounded-[16px] border font-black ${bhk===b?"bg-white text-black":"bg-[#1a2332]"}`}>{b} BHK<br/><span className="text-[11px] font-normal">Doors: {b===1?6:b===2?8:10}</span></button>))}</div>
         <div className="text-[11px] mb-3">Room: {bhk} BHK = Living + Kitchen + {bhk} Bedroom + {bhk} Bath + Balcony | Contract badalte hi BOQ Auto-Rebuild hoga</div>
@@ -231,19 +245,4 @@ export default function Page(){
     {editPkg && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px]"><h3 className="font-black capitalize">Edit {editPkg} Package</h3><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" className="w-full border rounded-full px-3 py-3 mt-2 text-black" /><div className="text-[12px] mt-1">Abhi: Rs.{pkgRates[editPkg]} | Save ke baad Auto-Rebuild ho jayega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold">Save</button></div></div></div>}
   </div>
   );
-}ounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"Contract + Location":n===2?"Rates":"Estimate"}</div>)}</div>
-      <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center">
-        <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today}</div>
-        <div className="font-black text-[16px]">Total Rs.{inr(finalTotal)}{showUSD?` = $${usd} (Approx @ ${USD_RATE})`:""}</div>
-        <div className="text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} ({labourRate}/sqft) + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)}</div>
-        <div className="text-[12px] text-cyan-300">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:"GST Extra"} | Effective Rs.{effRate}/sqft</div>
-        <div className="text-[11px] italic">{inWords(finalTotal)}</div>
-        <div className="text-[11px] text-[#d4af37]">BOQ Sum = Grand Total - Koi Fark Nahi | {profitLabel}</div>
-      </div>
-  useEffect(()=>{ rebuildBOQ(false); // eslint-disable-next-line
-  },[]);
-  useEffect(()=>{ if(mats.length===0) return; const t=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(t); // eslint-disable-next-line
-  },[geo,pkg,contract,bhk,storeys,plot,cov,pkgRates]);
-  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); try{ localStorage.setItem("aw_quote_v31",q); }catch(e){} alert(`Naya Quote: ${q}`); };
-  useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v31")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v31")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone); }catch(e){} },[]);
-  useEffect(()=>{ try{ localStorage.setItem("aw_draft_v31", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
+}
