@@ -99,8 +99,6 @@ export default function Page(){
   const [gstOn,setGstOn]=useState(false);
   const [view,setView]=useState<"owner"|"contractor"|"all">("all");
   const [contract,setContract]=useState<"full"|"centring"|"labour"|"item">("centring");
-  const [showUSD,setShowUSD]=useState(false);
-  const [bigText,setBigText]=useState(false);
   const [gpsOk,setGpsOk]=useState(false);
   const [history,setHistory]=useState<any[]>([]);
   const [pkgRates,setPkgRates]=useState({ basic:1640, standard:2000, premium:2760 });
@@ -192,31 +190,25 @@ export default function Page(){
   useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v31")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v31")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone); }catch(e){} },[]);
   useEffect(()=>{ try{ localStorage.setItem("aw_draft_v31", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
   return (
-  <div className={`min-h-screen bg-[#02020a] text-white p-2 pb-32 ${bigText?"text-[15px]":""}`}>
+  <div className="min-h-screen bg-[#02020a] text-white p-2 pb-32">
     <div className="max-w-[720px] mx-auto">
       <div className="bg-[#0f141f] border border-[#d4af37]/20 rounded-2xl px-4 py-2 mb-2 text-center">
-        <b>{COMPANY.name} <span className="text-[#d4af37]">- V34</span></b>
+        <b>{COMPANY.name} <span className="text-[#d4af37]">- V35</span></b>
         <div className="text-[11px] text-white/70">{COMPANY.city} | {COMPANY.phone} | GSTIN: {COMPANY.gstin}</div>
         <div className="text-[11px]">Quote: {quoteNo} | Date: {today} | Valid: {validTill} | {version} <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">New Quote</button></div>
       </div>
       <div className="flex justify-between items-center bg-[#0f141f] border rounded-2xl px-4 py-2.5 mb-2">
-        <b>Estimate <span className="text-[#d4af37]">V34</span></b>
+        <b>Estimate <span className="text-[#d4af37]">V35</span></b>
         <div className="flex bg-black rounded-full p-1 gap-1">
           <button onClick={()=>setView("all")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="all"?"bg-white text-black":"text-white/70"}`}>All: {mats.length}</button>
           <button onClick={()=>setView("owner")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="owner"?"bg-white text-black":"text-white/70"}`}>Owner: {ownerMats.length}</button>
           <button onClick={()=>setView("contractor")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="contractor"?"bg-[#d4af37] text-black":"text-white/70"}`}>Contractor: {contMats.length}</button>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 mb-2">
-        <button onClick={()=>setShowUSD(!showUSD)} className="px-3 py-1 rounded-full bg-black border text-[12px]">{showUSD?"Show in Rs.":"Show in $ + Sqmt"}</button>
-        <button onClick={()=>setBigText(!bigText)} className="px-3 py-1 rounded-full bg-black border text-[12px]">{bigText?"Normal":"Big Text"}</button>
-        <button onClick={()=>rebuildBOQ(false)} className="px-3 py-1 rounded-full bg-[#d4af37] text-black text-[12px] font-bold">🔄 Rebuild BOQ</button>
-        <span className="text-[12px] text-green-400 font-bold py-1">✓ Draft Saved | {version} | Auto-Rebuild ON</span>
-      </div>
       <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract":n===2?"2. Location":"3. Final"}</button>)}</div>
       <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center">
         <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today}</div>
-        <div className="font-black text-[18px]">Total Rs.{inr(finalTotal)}{showUSD?` = $${usd} (Approx @ ${USD_RATE})`:""}</div>
+        <div className="font-black text-[18px]">Total Rs.{inr(finalTotal)}</div>
         <div className="text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} ({labourRate}/sqft) + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)}</div>
         <div className="text-[12px] text-cyan-300">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:"GST Extra"} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic">{inWords(finalTotal)}</div>
@@ -275,20 +267,11 @@ export default function Page(){
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
         <div className="flex justify-between mb-3"><h2 className="font-black text-[#d4af37]">Page 3 - Final - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10">Back</button></div>
         <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px]">Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Labour Rs.{inr(labourCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ GST Extra"} = Rs.{inr(finalTotal)} | {today} | Valid: {validTill}</div>
-        <div className="text-[12px] mb-3">Rates - Har Item me 4 Company - Company badalte hi Rate + Total khud badlega - Best wali pehle hai, Budget wali last me</div>
-        <div className="grid gap-2 mb-3">{mats.map(m=>(
-          <div key={m.id} className="bg-white/5 border rounded-[16px] p-3">
-            <div className="flex justify-between text-[13px]"><b>{m.name}</b><span>{m.qty} {m.unit} x Rs.{m.rate} = <b>Rs.{inr(m.qty*m.rate)}</b></span></div>
-            <select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="w-full bg-black border rounded-full px-3 py-2 mt-2 text-[12px]">
-              {m.companies.map((c,i)=><option key={c} value={c}>{i+1}. {c} - Rs.{Math.round(m.baseRate*m.mult[i])}</option>)}
-            </select>
-            <div className="text-[11px] text-white/60 mt-1">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"}</div>
-          </div>
-        ))}</div>
+        <div className="text-[12px] mb-3">Rates - Har Item me Company badalte hi Rate + Total khud badlega - Best wali pehle hai, Budget wali last me</div>
         <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"}</span></td><td className="text-right">{m.qty} {m.unit} x Rs.{m.rate} = <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
         {sitePhoto && <div className="mt-3"><b className="text-[12px]">Site Photo - PDF me bhi jayegi</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
         <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px]"><b className="text-[#d4af37]">Payment</b><div>30% Rs.{inr(Math.round(finalTotal*0.30))} | 30% Rs.{inr(Math.round(finalTotal*0.30))} | 30% Rs.{inr(Math.round(finalTotal*0.30))} | 10% Rs.{inr(Math.round(finalTotal*0.10))}</div><b className="text-[#d4af37] block mt-2">Timeline: {timeline} | Valid: {validTill}</b><div className="mt-1">NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior</div><div className="mt-1">{COMPANY.name} | {COMPANY.phone} | GSTIN: {COMPANY.gstin} | Signature: Client ____ Contractor ____</div></div>
-        <div className="font-black text-[18px] mt-3">Final: Rs.{inr(finalTotal)}{showUSD?` = $${usd}`:""} | Effective Rs.{effRate}/sqft</div>
+        <div className="font-black text-[18px] mt-3">Final: Rs.{inr(finalTotal)} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic mt-1">{inWords(finalTotal)}</div>
         <div className="flex gap-2 mt-3"><button onClick={wa} className="flex-1 bg-green-600 rounded-full py-3 font-bold">WhatsApp</button><button onClick={pdf} className="flex-1 bg-blue-600 rounded-full py-3 font-bold">Download PDF</button></div>
         <div className="flex gap-2 mt-2"><button onClick={saveEst} className="flex-1 bg-white/10 rounded-full py-3">💾 Save {version}</button><button onClick={newQuote} className="flex-1 bg-[#d4af37] text-black rounded-full py-3 font-bold">🆕 New Quote</button></div>
