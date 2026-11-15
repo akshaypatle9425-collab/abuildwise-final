@@ -102,7 +102,6 @@ function get7935AutoRate(city: string, stateName: string): number {
 }
 const CITY_RATES: Record<string, number> = { mumbai: 3300, thane: 3100, pune: 2800, nagpur: 2000, nashik: 2400, aurangabad: 2300, "delhi ncr": 3200, bangalore: 3000, hyderabad: 2900, indore: 2200, bhopal: 2100, pohegaon: 1350, kopargaon: 1380, shirdi: 1420, ahmednagar: 2100, balaghat: 1520, seoni: 1510, mandla: 1500,
   khamariya: 1402, khamaria: 1402, jabalpur: 2050, bhusawal: 2000, khandwa: 2050, burhanpur: 2020, jalgaon: 2100, dewas: 2150, waraseoni: 1525, katangi: 1515 };
-// FIX 2: City se State pakka sahi aayega - GPS galat de toh bhi ye map jeetega
 const CITY_STATE_MAP: Record<string, string> = {
   mumbai: "Maharashtra", thane: "Maharashtra", pune: "Maharashtra", nagpur: "Maharashtra", nashik: "Maharashtra", aurangabad: "Maharashtra", ahmednagar: "Maharashtra", shirdi: "Maharashtra", kopargaon: "Maharashtra", pohegaon: "Maharashtra", bhusawal: "Maharashtra", jalgaon: "Maharashtra",
   indore: "Madhya Pradesh", bhopal: "Madhya Pradesh", jabalpur: "Madhya Pradesh", dewas: "Madhya Pradesh", khandwa: "Madhya Pradesh", burhanpur: "Madhya Pradesh",
@@ -258,8 +257,6 @@ export default function Page(){
   const [contract,setContract]=useState<"full"|"centring"|"labour"|"item">("centring");
   const [gpsOk,setGpsOk]=useState(false);
   const [history,setHistory]=useState<any[]>([]);
-  // FIX 1: Package ab City se banega - fixed 1640/2000/2760 hataya
-  // pkgOverride sirf tab bharega jab tu Edit dabake khud rate badlega
   const [pkgOverride, setPkgOverride] = useState<{basic?:number, standard?:number, premium?:number}>({});
   const [editPkg,setEditPkg]=useState<null|"basic"|"standard"|"premium">(null);
   const [eRate,setERate]=useState("");
@@ -285,12 +282,12 @@ export default function Page(){
   const builtRaw = ground*(parseInt(storeys)||1);
   const extra = Math.round(builtRaw*0.15);
   const built115 = builtRaw + extra;
-  // FIX 1: pkgRates ab computed hai - City badalte hi badlega
   const pkgRates = {
     basic: pkgOverride.basic ?? Math.round(cityRate * 0.82),
     standard: pkgOverride.standard ?? cityRate,
     premium: pkgOverride.premium ?? Math.round(cityRate * 1.38),
   };
+  const pkgRate = pkgRates[pkg as keyof typeof pkgRates];
   const sqmt = (built115*0.092903).toFixed(1);
   const storeysNum = parseInt(storeys)||1;
   const filteredCities = geo.trim() ? CITIES.filter(c=>c.toLowerCase().includes(geo.toLowerCase().trim())).sort((a,b)=>a.toLowerCase().indexOf(geo.toLowerCase().trim()) - b.toLowerCase().indexOf(geo.toLowerCase().trim())) : CITIES;
@@ -326,10 +323,8 @@ export default function Page(){
     const nm = mats.map(m=>{ if(m.id!==matId) return m; const newRate = Math.round(m.baseRate * m.mult[idx]); editedIds.current.add(m.id); return {...m, company: m.companies[idx], rate: newRate}; });
     setMats(nm);
   };
-  // FIX 1: Edit ab override me jayega, fixed rate me nahi
   const savePkg = ()=>{ const r=parseInt(eRate); if(!r||r<=0) return alert("Sahi Rate dalo"); setPkgOverride(p=>({...p,[editPkg as string]:r})); setEditPkg(null); };
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
-  // FIX 2: GPS - Free Nominatim hi hai, Route.ts nahi chahiye. City se State fix kiya.
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const stRaw=d.address?.state||geoState; const st=getStateForCity(c, stRaw); setGeo(c); setGeoState(st); setPkgOverride({}); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
   const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
   const saveEst = ()=>{ const e={name:cname||"No Name",geo,built:built115,total:finalTotal,date:today,quoteNo}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} alert(`Estimate Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote",nq); }catch(e){} };
@@ -398,7 +393,6 @@ export default function Page(){
   const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); setCname(""); setCphone(""); setPlot("2000"); setCov(64); setStoreys("1"); setBhk(2); setPhase(1); setSitePhoto(""); setClientSign(""); setContractorSign(""); try{ localStorage.setItem("aw_quote",q); }catch(e){} alert(`Naya Quote: ${q}`); };
   useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
   useEffect(()=>{ rebuildBOQ(false); },[]);
-  // FIX 1: dependency me pkgRates ki jagah pkgOverride + cityRate
   useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgOverride, geoState]);
   useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history")||localStorage.getItem("aw_history_v38")||localStorage.getItem("aw_history_v37")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft")||localStorage.getItem("aw_draft_v38")||localStorage.getItem("aw_draft_v37")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
     const c=JSON.parse(localStorage.getItem("aw_company")||localStorage.getItem("aw_company_v38")||localStorage.getItem("aw_company_v37")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.email) setCompEmail(c.email); if(c.address) setCompAddress(c.address); if(c.website) setCompWebsite(c.website); if(c.gstin) setCompGstin(c.gstin); if(c.logo) setCompLogo(c.logo);
