@@ -7,7 +7,7 @@ const USD_RATE = 88;
 type Lang = "en" | "hi";
 const T = {
   en: {
-    appTitle: "Estimate", final: "Final", download: "Download PDF", whatsapp: "WhatsApp", save: "Save V37 FINAL", newQuote: "New Quote",
+    appTitle: "Estimate", final: "Final", download: "Download PDF", whatsapp: "WhatsApp", save: "Save V38 FINAL", newQuote: "New Quote",
     clientName: "Client Name * Required", clientPhone: "Client Phone * 10 Digit",
     page1: "Page 1 - Contract + Plot + BHK", page2: "Page 2 - Location + Package", page3: "Page 3 - Final",
     nextLoc: "Next - Location →", nextFinal: "Next - Final →", back: "Back",
@@ -29,10 +29,23 @@ const T = {
     ],
     scan: "Scan to Chat on WhatsApp", history: "History", noHistory: "No history yet",
     withMat: "With Material - Turnkey", withoutMat: "Without Material - Centering + Labour",
-    labourOnly: "Labour Only", itemRate: "Item - Item Rate", gstExtra: "GST Extra (Alag Se)"
+    labourOnly: "Labour Only", itemRate: "Item - Item Rate", gstExtra: "GST Extra",
+    boqOk: "BOQ Sum = Grand Total - No Difference",
+    onlyLabourDesc: "Only Mistri/Beldar - No Ply/Batta - No Extra Labour",
+    itemDesc: "Separate Rate For Each Work - Brickwork / Plaster / Flooring Separate - No Extra Labour",
+    bhkSelect: "BHK - Select Only One",
+    onlyNumber: "Only Number", selected: "Selected",
+    searchCity: "Search City - Type any letter to find city",
+    stateLabel: "State - Auto From GPS | Any village name will make rate from State",
+    sitePhotoLabel: "Site Photo Upload - Will also go in PDF",
+    photoSelected: "Photo Selected", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
+    approx: "Approximate. Final may vary 10-15%. Valid till",
+    clientSign: "Client", contractorSign: "Contractor", stamp: "Stamp", signDate: "Signature & Date", companySeal: "Company Seal",
+    signHint: "Sign here with finger or upload photo", uploadPhoto: "Upload Photo", clear: "Clear",
+    totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   },
   hi: {
-    appTitle: "अनुमान", final: "फाइनल", download: "पीडीएफ डाउनलोड करें", whatsapp: "व्हाट्सऐप", save: "सेव करें V37 फाइनल", newQuote: "नया कोट",
+    appTitle: "अनुमान", final: "फाइनल", download: "पीडीएफ डाउनलोड करें", whatsapp: "व्हाट्सऐप", save: "सेव करें V38 फाइनल", newQuote: "नया कोट",
     clientName: "ग्राहक का नाम * जरूरी है", clientPhone: "ग्राहक का फोन * 10 अंक",
     page1: "पेज 1 - ठेका + प्लॉट + BHK", page2: "पेज 2 - लोकेशन + पैकेज", page3: "पेज 3 - फाइनल",
     nextLoc: "आगे - लोकेशन →", nextFinal: "आगे - फाइनल →", back: "पीछे",
@@ -54,10 +67,22 @@ const T = {
     ],
     scan: "व्हाट्सऐप पर बात करने के लिए स्कैन करें", history: "हिस्ट्री", noHistory: "अभी कोई हिस्ट्री नहीं है",
     withMat: "मटीरियल सहित - टर्नकी", withoutMat: "बिना मटीरियल - सेंटरिंग + लेबर",
-    labourOnly: "केवल लेबर", itemRate: "आइटम - आइटम रेट", gstExtra: "GST अलग से"
+    labourOnly: "केवल लेबर", itemRate: "आइटम - आइटम रेट", gstExtra: "GST अलग से",
+    boqOk: "BOQ Sum = Grand Total - Koi Fark Nahi",
+    onlyLabourDesc: "Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour",
+    itemDesc: "Har Kaam ka Alag Item Rate - Brickwork / Plaster / Flooring Alag - No Extra Labour",
+    bhkSelect: "BHK - Ek hi chunenge",
+    onlyNumber: "Sirf Number", selected: "Selected",
+    searchCity: "Search City - B likho to B wali City aayegi",
+    stateLabel: "State: GPS se Auto Aayega | Koi bhi Gaon likho toh State se Rate banega",
+    sitePhotoLabel: "Site Photo Upload - PDF me bhi jayegi",
+    photoSelected: "Photo Selected", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
+    approx: "Approximate. Final may vary 10-15%. Valid till",
+    clientSign: "ग्राहक", contractorSign: "ठेकेदार", stamp: "मुहर", signDate: "हस्ताक्षर व तारीख", companySeal: "कंपनी की मुहर",
+    signHint: "Yahan ungli se sign karo ya photo daalo", uploadPhoto: "Photo Upload", clear: "Clear",
+    totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   }
 };
-// === ADD ONLY - 7935 CITY + KHAMARIYA - NO CUT ===
 const STATE_BASE_7935: Record<string, number> = {
   "maharashtra": 2000, "madhya pradesh": 1650, "uttar pradesh": 1750,
   "gujarat": 2100, "rajasthan": 1800, "delhi": 3200, "karnataka": 2400,
@@ -75,15 +100,12 @@ function get7935AutoRate(city: string, stateName: string): number {
   if (METRO_7935.includes(c)) return Math.round(base * 1.25);
   return Math.round(base * 0.85);
 }
-// === END 7935 ADD ===
 const CITY_RATES: Record<string, number> = { mumbai: 3300, thane: 3100, pune: 2800, nagpur: 2000, nashik: 2400, aurangabad: 2300, "delhi ncr": 3200, bangalore: 3000, hyderabad: 2900, indore: 2200, bhopal: 2100, pohegaon: 1350, kopargaon: 1380, shirdi: 1420, ahmednagar: 2100, balaghat: 1520, seoni: 1510, mandla: 1500,
-  // === ADD ONLY - KHAMARIYA 1402 ===
   khamariya: 1402, khamaria: 1402, jabalpur: 2050, bhusawal: 2000, khandwa: 2050, burhanpur: 2020, jalgaon: 2100, dewas: 2150, waraseoni: 1525, katangi: 1515 };
 const CITIES = Object.keys(CITY_RATES).map(k=>k.charAt(0).toUpperCase()+k.slice(1));
 function getRate(city: string, stateName: string = ""){ 
   const k = city.toLowerCase().trim();
   if (CITY_RATES[k]) return CITY_RATES[k];
-  // === ADD ONLY - 7935 FALLBACK - AGAR CITY LIST ME NAHI HAI TOH STATE SE BANAO, 1700 FIX NAHI ===
   if (stateName) return get7935AutoRate(k, stateName);
   return 1700; 
 }
@@ -133,8 +155,7 @@ const MULT = [1, 0.96, 1.07, 0.90];
 const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number, pkgRate:number, contract:string): Mat[] => {
   const doorsQty = bhk===1 ? 6 : bhk===2 ? 8 : 10;
   const f = (cityRate/2000) * (pkgRate/2000);
-  // === ADD ONLY - FULL AUTOMATIC MATERIAL FACTOR - SAB MATERIAL CITY SE BADLEGA ===
-  const fCity = cityRate/2000; // Khamariya 1402 => 0.70, Nagpur 2000 => 1.0, Mumbai 3300 => 1.65
+  const fCity = cityRate/2000;
   const curingDays = 14 + (storeysNum * 7);
   const mk = (id:string, name:string, qty:number, base:number, cat:string, owner:boolean, unit:string, factor:number):Mat => ({ id, name, qty, rate: Math.round(base), baseRate: Math.round(base), company: COMP[cat][0], companies: COMP[cat], mult: MULT, cat, owner, unit, factor });
   const all: Mat[] = [
@@ -148,7 +169,6 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("tiles","Tiles", Math.round(built*0.85), 110*f, "tiles", true, "Sqft", 0.85),
     mk("marble","Italian Marble", Math.round(built*0.85), 350*f, "marble", true, "Sqft", 0.85),
     mk("paint","Paint", Math.round(built*0.12), 220*(pkgRate/2000), "paint", true, "Ltr", 0.12),
-    // === ADD ONLY - PEHLE YE SAB FIXED THE (45, 12000, 8500...) AB CITY SE BADLENGE ===
     mk("waterproofing","Waterproofing", Math.round(built*0.50), 45*fCity, "waterproofing", true, "Sqft", 0.50),
     mk("doors","Doors", doorsQty, 12000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0),
     mk("windows","Windows", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000)*fCity, "windows", true, "Nos", 0),
@@ -159,8 +179,8 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("ply","Ply - Centering", Math.round(built*0.90), 95*fCity, "ply", false, "Sqft", 0.90),
     mk("batta","Batta - Sagwan", Math.round(built*0.60), 65*fCity, "batta", false, "Rft", 0.60),
     mk("jack","Jack Prop", Math.round(built*0.08), 120*fCity, "jack", false, "Nos", 0.08),
-    mk("mistri","Mistri", Math.round(built*0.15), 750*fCity, "mistri", false, "Days", 0.15),
-    mk("beldar","Beldar", Math.round(built*0.25), 500*fCity, "beldar", false, "Days", 0.25),
+    mk("mistri","Mistri", Math.round(built*0.08), 750*fCity, "mistri", false, "Days", 0.08),
+    mk("beldar","Beldar", Math.round(built*0.12), 500*fCity, "beldar", false, "Days", 0.12),
     mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0),
     mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1),
     mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0),
@@ -168,12 +188,32 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
   if(contract==="labour") return all.filter(m=> ["mistri","beldar","curing","contingency"].includes(m.id));
   return all.filter(m=> !(m.id==="lift" && m.qty===0));
 };
+function SignatureBox({ label, value, onChange, hint, uploadLabel, clearLabel }: any) {
+  const canvasRef = useRef<any>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const getPos = (e:any, canvas:any) => { const rect = canvas.getBoundingClientRect(); const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY; return { x: cx - rect.left, y: cy - rect.top }; };
+  const startDraw = (e:any) => { const canvas = canvasRef.current; if(!canvas) return; const ctx = canvas.getContext("2d"); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.lineCap = "round"; const p = getPos(e, canvas); ctx.beginPath(); ctx.moveTo(p.x, p.y); setIsDrawing(true); };
+  const draw = (e:any) => { if(!isDrawing) return; const canvas = canvasRef.current; const ctx = canvas.getContext("2d"); const p = getPos(e, canvas); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const endDraw = () => { if(!isDrawing) return; setIsDrawing(false); if(canvasRef.current) onChange(canvasRef.current.toDataURL()); };
+  const handleUpload = (e:any) => { const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = () => onChange(reader.result as string); reader.readAsDataURL(file); };
+  const clear = () => { onChange(""); const c = canvasRef.current; if(c) c.getContext("2d").clearRect(0,0,c.width,c.height); };
+  return (
+    <div className="bg-white text-black rounded-xl p-3 border">
+      <p className="font-bold text-center text-sm">{label}</p>
+      {value ? <img src={value} alt="sign" className="h-[90px] w-full object-contain bg-white border rounded my-2" /> : <canvas ref={canvasRef} width={260} height={90} onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} className="w-full h-[90px] bg-[#fffbe6] border border-dashed rounded my-2 touch-none" />}
+      <p className="text-[11px] text-center text-gray-500">{hint}</p>
+      <div className="flex gap-2 mt-2">
+        <label className="flex-1 text-center bg-blue-600 text-white text-xs py-2 rounded cursor-pointer">📷 {uploadLabel}<input type="file" accept="image/*" className="hidden" onChange={handleUpload} /></label>
+        <button onClick={clear} className="flex-1 bg-red-100 text-red-600 text-xs py-2 rounded">❌ {clearLabel}</button>
+      </div>
+    </div>
+  );
+}
 export default function Page(){
   const [lang,setLang] = useState<Lang>("en");
   const t = T[lang];
   const [phase,setPhase]=useState(1);
   const [geo,setGeo]=useState("Nagpur");
-  // === ADD ONLY - STATE FOR 7935 ===
   const [geoState,setGeoState]=useState("Maharashtra");
   const [showCityDrop,setShowCityDrop]=useState(false);
   const [plot,setPlot]=useState("2000");
@@ -204,8 +244,10 @@ export default function Page(){
   const [compAddress,setCompAddress]=useState("");
   const [compWebsite,setCompWebsite]=useState("");
   const [compGstin,setCompGstin]=useState("");
+  const [compLogo,setCompLogo]=useState<string>("");
+  const [clientSign,setClientSign]=useState<string>("");
+  const [contractorSign,setContractorSign]=useState<string>("");
   const editedIds = useRef<Set<string>>(new Set());
-  // === ADD ONLY - CITY RATE AB STATE KE SAATH AAYEGA ===
   const cityRate = getRate(geo, geoState);
   const plotNum = parseInt(plot)||0;
   const ground = Math.round(plotNum*cov/100);
@@ -215,7 +257,7 @@ export default function Page(){
   const pkgRate = pkgRates[pkg as keyof typeof pkgRates];
   const sqmt = (built115*0.092903).toFixed(1);
   const storeysNum = parseInt(storeys)||1;
-  const filteredCities = geo.trim() ? CITIES.filter(c=>c.toLowerCase().startsWith(geo.toLowerCase().trim())) : [];
+  const filteredCities = geo.trim() ? CITIES.filter(c=>c.toLowerCase().includes(geo.toLowerCase().trim())) : [];
   const rebuildBOQ = (preserve:boolean=true)=>{
     const fresh = BASE_MATS(built115, cityRate, bhk, storeysNum, pkgRate, contract);
     if(preserve && mats.length>0){
@@ -243,16 +285,17 @@ export default function Page(){
   const timeline = storeys==="1" ? "G+0 = 6 Months" : `G+${storeysNum-1} = ${6+(storeysNum-1)*3} Months`;
   const list = view==="owner" ? ownerMats : view==="contractor" ? contMats : mats;
   const version = `V${history.length+1}`;
+  const pay30 = Math.round(finalTotal*0.30);
+  const pay10 = finalTotal - (pay30*3);
   const changeCompany = (matId:string, idx:number)=>{
     const nm = mats.map(m=>{ if(m.id!==matId) return m; const newRate = Math.round(m.baseRate * m.mult[idx]); editedIds.current.add(m.id); return {...m, company: m.companies[idx], rate: newRate}; });
     setMats(nm);
   };
   const savePkg = ()=>{ const r=parseInt(eRate); if(!r||r<=0) return alert("Sahi Rate dalo"); setPkgRates(p=>({...p,[editPkg as string]:r})); setEditPkg(null); };
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
-  // === ADD ONLY - GPS ME STATE BHI PAKDEGA ===
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const st=d.address?.state||geoState; setGeo(c); setGeoState(st); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
   const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
-  const saveEst = ()=>{ const e={name:cname||"No Name",geo,built:built115,total:finalTotal,date:today,quoteNo,version}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history_v37",JSON.stringify(nh)); }catch(e){} alert(`Estimate ${version} Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote_v37",nq); }catch(e){} };
+  const saveEst = ()=>{ const e={name:cname||"No Name",geo,built:built115,total:finalTotal,date:today,quoteNo,version}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history_v38",JSON.stringify(nh)); }catch(e){} alert(`Estimate ${version} Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote_v38",nq); }catch(e){} };
   const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${cname||geo} - ${geo} - ${bhk} BHK - Built ${built115} Sqft - ${contract} - Total Rs.${inr(finalTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(finalTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
   const pdf = async ()=>{
     const doc=new jsPDF();
@@ -263,18 +306,19 @@ export default function Page(){
     const DISPLAY_WEBSITE = compWebsite || "__________";
     const DISPLAY_GSTIN = compGstin || "__________";
     doc.setFillColor(0,0,0); doc.rect(0,0,210,42,"F");
-    doc.setTextColor(212,175,55); doc.setFontSize(22); doc.setFont("helvetica","bold"); doc.text(COMPANY.name,14,16);
-    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.text(`Phone: ${DISPLAY_PHONE} | Email: ${DISPLAY_EMAIL}`,14,24);
-    doc.text(`Address: ${DISPLAY_ADDRESS} | Website: ${DISPLAY_WEBSITE} | GSTIN: ${DISPLAY_GSTIN}`,14,30);
+    if(compLogo){ try{ doc.addImage(compLogo, "JPEG", 14, 4, 18, 18); }catch(e){} }
+    doc.setTextColor(212,175,55); doc.setFontSize(22); doc.setFont("helvetica","bold"); doc.text(COMPANY.name, compLogo ? 36 : 14, 16);
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.text(`Phone: ${DISPLAY_PHONE} | Email: ${DISPLAY_EMAIL}`, compLogo ? 36 : 14, 24);
+    const addrLines = doc.splitTextToSize(`Address: ${DISPLAY_ADDRESS} | Website: ${DISPLAY_WEBSITE} | GSTIN: ${DISPLAY_GSTIN}`, 182); doc.text(addrLines, compLogo ? 36 : 14, 30);
     doc.setTextColor(0,0,0);
     doc.setFontSize(10); doc.setFont("helvetica","bold");
-    doc.text(isHi ? `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Din) | V37 FINAL` : `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days) | V37 FINAL`,14,48);
+    doc.text(isHi ? `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Din) | V38 FINAL` : `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days) | V38 FINAL`,14,48);
     doc.text(isHi ? `Graahak: ${cname||"Not Provided"} | Phone: ${cphone||"Not Provided"}` : `Client: ${cname||"Not Provided"} | Phone: ${cphone||"Not Provided"}`,14,55);
-    doc.text(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground Floor ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt) | ${bhk} BHK | ${getLabel(storeys)}`,14,62);
+    const plotLines = doc.splitTextToSize(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground Floor ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt) | ${bhk} BHK | ${getLabel(storeys)}`, 182); doc.text(plotLines,14,62);
     doc.text(`Package: ${pkg} Rs.${pkgRate} | Mode: ${contract} | Timeline: ${timeline}`,14,69);
-    doc.setFontSize(13); doc.text(`Grand Total: Rs. ${inr(finalTotal)} ${gstOn?`(With GST - CGST ${inr(cgst)} + SGST ${inr(sgst)})`:"( + GST Extra - Alag Se )"}`,14,79);
+    doc.setFontSize(13); doc.text(`Grand Total: Rs. ${inr(finalTotal)} ${gstOn?`(With GST - CGST ${inr(cgst)} + SGST ${inr(sgst)})` : isHi ? "( + GST Extra - Alag Se )" : "( + GST Extra )"}`,14,79);
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.text(`In Words: ${inWords(finalTotal)}`,14,86);
-    doc.text(`Effective Rate: Rs.${effRate}/sqft | ${profitLabel}`,14,93);
+    doc.text(`Effective Rate: Rs.${effRate}/sqft | USD $${usd} | ${profitLabel}`,14,93);
     let y=101;
     if(sitePhoto){ try{ doc.addImage(sitePhoto, "JPEG", 14, y, 60, 35); doc.text("Site Photo", 80, y+10); y+=40; }catch(e){} }
     doc.setFillColor(212,175,55); doc.rect(14, y, 182, 7, "F");
@@ -284,30 +328,37 @@ export default function Page(){
     mats.forEach((m,i)=>{ if(y>250){doc.addPage(); y=14;} doc.text(`${i+1}.`,15,y); doc.text(`${m.name} - ${m.company}`.substring(0,42),24,y); doc.text(`${m.qty} ${m.unit}`,110,y); doc.text(`Rs.${m.rate}`,140,y); doc.text(`Rs.${inr(m.qty*m.rate)}`,165,y); y+=5.5; });
     y+=4; doc.setFont("helvetica","bold"); doc.setFontSize(9);
     doc.text(`Owner Rs.${inr(ownerCost)} + Contractor Rs.${inr(contCost)} + Labour Rs.${inr(labourCost)} + Profit Rs.${inr(profit)} = Rs.${inr(baseTotal)}`,14,y); y+=7;
-    const payLine = isHi ? `Bhugtan: 30% Plinth Rs.${inr(Math.round(finalTotal*0.30))} | 30% Slab Rs.${inr(Math.round(finalTotal*0.30))} | 30% Plaster Rs.${inr(Math.round(finalTotal*0.30))} | 10% Handover Rs.${inr(Math.round(finalTotal*0.10))}` : `Payment: 30% On Plinth Rs.${inr(Math.round(finalTotal*0.30))} | 30% On Slab Rs.${inr(Math.round(finalTotal*0.30))} | 30% On Plaster Rs.${inr(Math.round(finalTotal*0.30))} | 10% On Handover Rs.${inr(Math.round(finalTotal*0.10))}`;
+    const payLine = isHi ? `Bhugtan: 30% Plinth Rs.${inr(pay30)} | 30% Slab Rs.${inr(pay30)} | 30% Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}` : `Payment: 30% On Plinth Rs.${inr(pay30)} | 30% On Slab Rs.${inr(pay30)} | 30% On Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}`;
     const payLines = doc.splitTextToSize(payLine, 182); doc.text(payLines,14,y); y += payLines.length*5+2;
     doc.setFont("helvetica","normal"); doc.text(t.notInc,14,y); y+=7;
     doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(t.termsTitle,14,y); y+=6;
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
     t.terms.forEach((term,idx)=>{ const lines = doc.splitTextToSize(`${idx+1}. ${term}`,182); if(y>265){doc.addPage(); y=14;} doc.text(lines,14,y); y+=lines.length*4.5+1; });
     y+=8; doc.setFontSize(10);
+    if(clientSign){ try{ doc.addImage(clientSign, "PNG", 14, y, 45, 18); }catch(e){} }
+    if(contractorSign){ try{ doc.addImage(contractorSign, "PNG", 85, y, 45, 18); }catch(e){} }
+    y+=22;
     doc.text(isHi ? `Hastakshar: Graahak __________  Thekedaar __________  Stamp: __________  Date: ${today}` : `Signature: Client __________  Contractor __________  Stamp: __________  Date: ${today}`,14,y);
-    doc.save(`${COMPANY.name}_${quoteNo}_${built115}_V37.pdf`);
+    doc.save(`${COMPANY.name}_${quoteNo}_${built115}_V38.pdf`);
   };
-  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); try{ localStorage.setItem("aw_quote_v37",q); }catch(e){} alert(`Naya Quote: ${q}`); };
+  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); setCname(""); setCphone(""); setPlot("2000"); setCov(64); setStoreys("1"); setBhk(2); setPhase(1); setSitePhoto(""); setClientSign(""); setContractorSign(""); try{ localStorage.setItem("aw_quote_v38",q); }catch(e){} alert(`Naya Quote: ${q}`); };
   useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
   useEffect(()=>{ rebuildBOQ(false); },[]);
   useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgRates, geoState]);
-  useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v37")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v37")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
-    const c=JSON.parse(localStorage.getItem("aw_company_v37")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.email) setCompEmail(c.email); if(c.address) setCompAddress(c.address); if(c.website) setCompWebsite(c.website); if(c.gstin) setCompGstin(c.gstin);
+  useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v38")||localStorage.getItem("aw_history_v37")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v38")||localStorage.getItem("aw_draft_v37")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
+    const c=JSON.parse(localStorage.getItem("aw_company_v38")||localStorage.getItem("aw_company_v37")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.email) setCompEmail(c.email); if(c.address) setCompAddress(c.address); if(c.website) setCompWebsite(c.website); if(c.gstin) setCompGstin(c.gstin); if(c.logo) setCompLogo(c.logo);
+    const s=JSON.parse(localStorage.getItem("aw_sign_v38")||"{}"); if(s.client) setClientSign(s.client); if(s.contractor) setContractorSign(s.contractor);
   }catch(e){} },[]);
-  useEffect(()=>{ try{ localStorage.setItem("aw_draft_v37", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
-  useEffect(()=>{ try{ localStorage.setItem("aw_company_v37", JSON.stringify({phone:compPhone,email:compEmail,address:compAddress,website:compWebsite,gstin:compGstin})); }catch(e){} },[compPhone,compEmail,compAddress,compWebsite,compGstin]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_draft_v38", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_company_v38", JSON.stringify({phone:compPhone,email:compEmail,address:compAddress,website:compWebsite,gstin:compGstin,logo:compLogo})); }catch(e){} },[compPhone,compEmail,compAddress,compWebsite,compGstin,compLogo]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_sign_v38", JSON.stringify({client:clientSign,contractor:contractorSign})); }catch(e){} },[clientSign,contractorSign]);
   return (
   <div className="min-h-screen bg-[#02020a] text-white p-2 pb-32">
     <div className="max-w-[720px] mx-auto">
       <div className="bg-[#0f141f] border border-[#d4af37]/20 rounded-2xl px-4 py-3 mb-2 text-center">
-        <b className="whitespace-nowrap text-[16px]">{COMPANY.name} <span className="text-[#d4af37]">- V37 FINAL</span></b>
+        <b className="whitespace-nowrap text-[16px]">{COMPANY.name} <span className="text-[#d4af37]">- V38 FINAL</span></b>
+        {compLogo && <img src={compLogo} alt="Logo" className="mx-auto h-[60px] object-contain mt-2 bg-white rounded p-1" />}
+        <label className="block mt-2 text-[11px] text-white/60 cursor-pointer">📷 Company Logo Upload - PDF me bhi jayega<input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setCompLogo(String(r.result)); r.readAsDataURL(f); } }} /></label>
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-left">
           <input value={compPhone} onChange={e=>setCompPhone(e.target.value)} placeholder="Phone: Apna number likho" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40" />
           <input value={compEmail} onChange={e=>setCompEmail(e.target.value)} placeholder="Email: Apna email likho" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40" />
@@ -321,10 +372,10 @@ export default function Page(){
             <button onClick={()=>setLang("hi")} className={`px-4 py-1.5 rounded-full text-[12px] font-bold ${lang==="hi"?"bg-[#d4af37] text-black":"text-white/70"}`}>हिंदी</button>
           </div>
         </div>
-        <div className="text-[11px] mt-1 whitespace-nowrap overflow-hidden">Quote: {quoteNo} | Date: {today} | {t.valid}: {validTill} (30 Days) | V37 FINAL <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">{t.newQuote}</button></div>
+        <div className="text-[11px] mt-1 whitespace-nowrap overflow-hidden">Quote: {quoteNo} | Date: {today} | {t.valid}: {validTill} (30 Days) | V38 FINAL <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">{t.newQuote}</button></div>
       </div>
       <div className="flex justify-between items-center bg-[#0f141f] border rounded-2xl px-4 py-2.5 mb-2">
-        <b className="whitespace-nowrap">{t.appTitle} <span className="text-[#d4af37]">V37 FINAL</span></b>
+        <b className="whitespace-nowrap">{t.appTitle} <span className="text-[#d4af37]">V38 FINAL</span></b>
         <div className="flex bg-black rounded-full p-1 gap-1">
           <button onClick={()=>setView("all")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="all"?"bg-white text-black":"text-white/70"}`}>All: {mats.length}</button>
           <button onClick={()=>setView("owner")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="owner"?"bg-white text-black":"text-white/70"}`}>Owner: {ownerMats.length}</button>
@@ -342,23 +393,23 @@ export default function Page(){
           <span>Profit Rs.{inr(profit)}</span>
           <span className="font-bold">Total = Rs.{inr(baseTotal)}</span>
         </div>
-        <div className="text-[12px] text-cyan-300 mt-1">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRate}/sqft</div>
+        <div className="text-[12px] text-cyan-300 mt-1">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRate}/sqft | USD ${usd}</div>
         <div className="text-[11px] italic">{inWords(finalTotal)}</div>
-        <div className="text-[11px] text-[#d4af37]">BOQ Sum = Grand Total - Koi Fark Nahi | {profitLabel}</div>
+        <div className="text-[11px] text-[#d4af37]">{t.boqOk} | {profitLabel}</div>
       </div>
       {phase===1 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
         <h2 className="font-black text-[#d4af37] mb-3">{t.page1}</h2>
         <div className="grid gap-2 mb-3">
-          <button onClick={()=>setContract("full")} className={`text-left p-4 rounded-[16px] border ${contract==="full"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.withMat} {contract==="full"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">All Materials + Labour Included - 550/sqft Labour</div></button>
-          <button onClick={()=>setContract("centring")} className={`text-left p-4 rounded-[16px] border ${contract==="centring"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.withoutMat} {contract==="centring"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Owner Provides Material - 450/sqft Labour</div></button>
-          <button onClick={()=>setContract("labour")} className={`text-left p-4 rounded-[16px] border ${contract==="labour"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.labourOnly} {contract==="labour"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour</div></button>
-          <button onClick={()=>setContract("item")} className={`text-left p-4 rounded-[16px] border ${contract==="item"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.itemRate} {contract==="item"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">Selected</span>}</div><div className="text-[12px] mt-1">Har Kaam ka Alag Item Rate - Brickwork / Plaster / Flooring Alag - No Extra Labour</div></button>
+          <button onClick={()=>setContract("full")} className={`text-left p-4 rounded-[16px] border ${contract==="full"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.withMat} {contract==="full"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1">All Materials + Labour Included - 550/sqft Labour</div></button>
+          <button onClick={()=>setContract("centring")} className={`text-left p-4 rounded-[16px] border ${contract==="centring"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.withoutMat} {contract==="centring"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1">Owner Provides Material - 450/sqft Labour</div></button>
+          <button onClick={()=>setContract("labour")} className={`text-left p-4 rounded-[16px] border ${contract==="labour"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.labourOnly} {contract==="labour"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1">{t.onlyLabourDesc}</div></button>
+          <button onClick={()=>setContract("item")} className={`text-left p-4 rounded-[16px] border ${contract==="item"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px]">{t.itemRate} {contract==="item"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1">{t.itemDesc}</div></button>
         </div>
-        <div className="text-[12px] font-bold text-[#d4af37] mb-2">BHK - Ek hi chunenge</div>
+        <div className="text-[12px] font-bold text-[#d4af37] mb-2">{t.bhkSelect}</div>
         <div className="grid grid-cols-3 gap-2 mb-3">{[1,2,3].map(b=>(<button key={b} onClick={()=>setBhk(b)} className={`py-3 rounded-[16px] border font-black ${bhk===b?"bg-white text-black":"bg-[#1a2332]"}`}>{b} BHK<br/><span className="text-[11px] font-normal">Doors: {b===1?6:b===2?8:10}</span></button>))}</div>
         <div className="text-[11px] mb-3">Room: {bhk} BHK = Living + Kitchen + {bhk} Bedroom + {bhk} Bath + Balcony</div>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-black/60 border rounded-[18px] p-3"><div className="text-[12px] font-black text-[#d4af37]">Plot Area</div><input type="number" value={plot} onChange={e=>setPlot(e.target.value)} className="w-full bg-black border rounded-full px-3 py-2.5 text-[18px] font-black text-center" /><div className="text-[12px]">Sirf Number</div></div>
+          <div className="bg-black/60 border rounded-[18px] p-3"><div className="text-[12px] font-black text-[#d4af37]">Plot Area</div><input type="number" value={plot} onChange={e=>setPlot(e.target.value)} className="w-full bg-black border rounded-full px-3 py-2.5 text-[18px] font-black text-center" /><div className="text-[12px]">{t.onlyNumber}</div></div>
           <div className="bg-black/60 border rounded-[18px] p-3"><div className="text-[12px] font-black text-cyan-300">Coverage (10-90%)</div><input type="number" min={10} max={90} value={cov} onChange={e=>setCov(parseInt(e.target.value)||0)} className="w-full bg-black border rounded-full px-3 py-2.5 text-[18px] font-black text-center" /><div className="text-[12px]">{plotNum} x {cov}% = {ground}</div></div>
         </div>
         <label className="text-[12px] font-bold text-[#d4af37]">Floor - 1 se 50 tak - G+0 se G+49</label>
@@ -374,7 +425,7 @@ export default function Page(){
         <div className="bg-white/5 border rounded-[16px] p-3 mb-3">
           <div className="flex justify-between"><b className="text-[13px] text-cyan-300">Location + GPS + Site Photo</b><button onClick={gps} className="text-[12px] px-3 py-1 rounded-full bg-cyan-400 text-black font-black">{gpsOk?`${geo} - GPS Verified`:"Use GPS"}</button></div>
           <div className="relative">
-            <input value={geo} onChange={e=>{setGeo(e.target.value); setShowCityDrop(true);}} onFocus={()=>setShowCityDrop(true)} onBlur={()=>setTimeout(()=>setShowCityDrop(false),200)} className="w-full bg-black border rounded-full px-4 py-3 mt-2" placeholder="Search City - B likho to B wali City aayegi" />
+            <input value={geo} onChange={e=>{setGeo(e.target.value); setShowCityDrop(true);}} onFocus={()=>setShowCityDrop(true)} onBlur={()=>setTimeout(()=>setShowCityDrop(false),200)} className="w-full bg-black border rounded-full px-4 py-3 mt-2" placeholder={t.searchCity} />
             {showCityDrop && filteredCities.length>0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a2332] border rounded-2xl overflow-hidden z-20 max-h-[220px] overflow-y-auto">
                 {filteredCities.map(c=>(
@@ -383,39 +434,40 @@ export default function Page(){
               </div>
             )}
           </div>
-          <label className="block mt-2 text-[12px] font-bold">State: {geoState} - GPS se Auto Aayega | Koi bhi Gaon likho toh State se Rate banega</label>
+          <label className="block mt-2 text-[12px] font-bold">State: {geoState} - {t.stateLabel}</label>
           <input value={geoState} onChange={e=>setGeoState(e.target.value)} placeholder="State - Madhya Pradesh / Maharashtra" className="w-full bg-black border rounded-full px-4 py-3 mt-1" />
-          <label className="block mt-3 text-[12px] font-bold">📸 Site Photo Upload - PDF me bhi jayegi {sitePhoto && <span className="text-green-400">✓ Photo Selected</span>}</label>
+          <label className="block mt-3 text-[12px] font-bold">📸 {t.sitePhotoLabel} {sitePhoto && <span className="text-green-400">✓ {t.photoSelected}</span>}</label>
           <input type="file" accept="image/*" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setSitePhoto(String(r.result)); r.readAsDataURL(f); } }} className="w-full bg-black border rounded-full px-3 py-2 mt-1 text-[12px]" />
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
         </div>
         <div className="bg-[#d4af37]/10 border rounded-[18px] p-3 mb-3">
-          <div className="text-[12px] font-black text-[#d4af37] mb-2">Profit {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"}</div>
+          <div className="text-[12px] font-black text-[#d4af37] mb-2">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"}</div>
           <input type="range" min={5} max={50} value={profitP} onChange={e=>setProfitP(parseInt(e.target.value))} className="w-full accent-[#d4af37]" />
-          <button onClick={()=>setGstOn(!gstOn)} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black">{gstOn?"GST ON - CGST 9% + SGST 9%":"GST OFF - GST Extra"}</button>
+          <button onClick={()=>setGstOn(!gstOn)} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black">{gstOn?t.gstOnLabel:t.gstOffLabel}</button>
           <div className="grid grid-cols-3 gap-2 mt-3">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3"><div className="text-[12px] capitalize">{k}</div><div className="font-black">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>
         </div>
-        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3">⚠️ Approximate. Final may vary 10-15%. Valid till {validTill} (30 Days).</div>
+        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3">⚠️ {t.approx} {validTill} (30 Days).</div>
         <div className="flex gap-2"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 rounded-full py-3.5">{t.back}</button><button onClick={()=>{if(validate()) setPhase(3)}} className="flex-[2] bg-white text-black font-black py-3.5 rounded-full">{t.nextFinal}</button></div>
       </div>}
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
         <div className="flex justify-between mb-3"><h2 className="font-black text-[#d4af37]">{t.page3} - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10">{t.back}</button></div>
-        <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1"><span>Owner Rs.{inr(ownerCost)}</span><span>Contractor Rs.{inr(contCost)}</span><span>Labour Rs.{inr(labourCost)}</span><span>Profit Rs.{inr(profit)}</span><span className="font-bold">= Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ GST Extra (Alag Se)"} = Rs.{inr(finalTotal)}</span><span>{today} | {t.valid}: {validTill}</span></div>
-        <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"} | Live: Rs.{m.rate}</span></td><td className="text-right whitespace-nowrap">{m.qty} {m.unit}<br/>x Rs.{m.rate}<br/>= <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
-        {sitePhoto && <div className="mt-3"><b className="text-[12px]">Site Photo - PDF me bhi jayegi</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
-        <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px]"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1"><span>{t.pay1} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay2} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay3} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay4} - Rs.{inr(Math.round(finalTotal*0.10))}</span></div><b className="text-[#d4af37] block mt-2">{t.timeline}: {timeline} | {t.valid}: {validTill} (30 Days)</b><div className="mt-1">{t.notInc}</div></div>
+        <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1"><span>Owner Rs.{inr(ownerCost)}</span><span>Contractor Rs.{inr(contCost)}</span><span>Labour Rs.{inr(labourCost)}</span><span>Profit Rs.{inr(profit)}</span><span className="font-bold">= Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ " + t.gstExtra} = Rs.{inr(finalTotal)}</span><span>{today} | {t.valid}: {validTill}</span></div>
+        <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"} | Rate: Rs.{m.rate}</span></td><td className="text-right whitespace-nowrap">{m.qty} {m.unit}<br/>x Rs.{m.rate}<br/>= <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
+        {sitePhoto && <div className="mt-3"><b className="text-[12px]">{t.sitePhotoLabel}</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
+        <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px]"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1"><span>{t.pay1} - Rs.{inr(pay30)}</span><span>{t.pay2} - Rs.{inr(pay30)}</span><span>{t.pay3} - Rs.{inr(pay30)}</span><span>{t.pay4} - Rs.{inr(pay10)}</span></div><b className="text-[#d4af37] block mt-2">{t.timeline}: {timeline} | {t.valid}: {validTill} (30 Days)</b><div className="mt-1">{t.notInc}</div></div>
         <div className="font-black text-[18px] mt-3">{t.final}: Rs.{inr(finalTotal)} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic mt-1">{inWords(finalTotal)}</div>
         <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{t.terms.map((term,idx)=><div key={idx}>{idx+1}. {term}</div>)}</div>
-        <div className="grid grid-cols-3 gap-2 mt-3 text-center text-[11px] pb-4">
-          <div className="border rounded-[12px] p-3 min-h-[110px]">{lang==="hi"?"ग्राहक":"Client"}<br/><br/>________________<br/>{lang==="hi"?"हस्ताक्षर व तारीख":"Signature & Date"}</div>
-          <div className="border rounded-[12px] p-3 min-h-[110px]">{lang==="hi"?"ठेकेदार":"Contractor"}<br/><br/>________________<br/>{lang==="hi"?"हस्ताक्षर व तारीख":"Signature & Date"}</div>
-          <div className="border rounded-[12px] p-3 min-h-[110px]">{lang==="hi"?"मुहर":"Stamp"}<br/><br/>________________<br/>{lang==="hi"?"कंपनी की मुहर":"Company Seal"}</div>
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <SignatureBox label={t.clientSign + " Signature"} value={clientSign} onChange={setClientSign} hint={t.signHint} uploadLabel={t.uploadPhoto} clearLabel={t.clear} />
+          <SignatureBox label={t.contractorSign + " Signature"} value={contractorSign} onChange={setContractorSign} hint={t.signHint} uploadLabel={t.uploadPhoto} clearLabel={t.clear} />
         </div>
+        <div className="text-center text-[11px] mt-2 text-white/60">{t.clientSign}: {cname || "__________"} | Date: {today} | {t.stamp}: {t.companySeal}</div>
         <div className="text-center mt-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://wa.me/91${compPhone || "9823000000"}`} alt="WhatsApp QR" className="mx-auto border border-white/20 p-1 bg-white" /><div className="text-[11px] mt-1">{t.scan}</div></div>
         <div className="flex gap-2 mt-3"><button onClick={wa} className="flex-1 bg-green-600 rounded-full py-3 font-bold">{t.whatsapp}</button><button onClick={pdf} className="flex-1 bg-blue-600 rounded-full py-3 font-bold">{t.download}</button></div>
         <div className="flex gap-2 mt-2"><button onClick={saveEst} className="flex-1 bg-white/10 rounded-full py-3">💾 {t.save}</button><button onClick={newQuote} className="flex-1 bg-[#d4af37] text-black rounded-full py-3 font-bold">🆕 {t.newQuote}</button></div>
         {history.length>0 && <div className="mt-3"><b className="text-[13px]">{t.history}</b>{history.map((h,i)=><div key={i} className="text-[12px] bg-white/5 px-2 py-1.5 rounded-full mt-1">{h.version} - {h.quoteNo} - {h.name} - {h.built} Sqft - Rs.{inr(h.total)} - {h.date}</div>)}</div>}
+        {history.length===0 && <div className="mt-3 text-[12px] text-white/50 text-center">{t.noHistory}</div>}
       </div>}
     </div>
     {editMat!==null && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px]"><h3 className="font-black">Edit {list[editMat].name}</h3><input value={eQty} onChange={e=>setEQty(e.target.value)} placeholder="Qty" className="w-full border rounded-full px-3 py-2 mt-2 text-black" /><input value={eMatRate} onChange={e=>setEMatRate(e.target.value)} placeholder="Rate" className="w-full border rounded-full px-3 py-2 mt-2 text-black" /><div className="text-[12px] mt-1">Save dabate hi Total badlega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditMat(null)} className="flex-1 bg-gray-200 rounded-full py-3">Cancel</button><button onClick={()=>saveMat(editMat)} className="flex-1 bg-black text-white rounded-full py-3 font-bold">Save</button></div></div></div>}
