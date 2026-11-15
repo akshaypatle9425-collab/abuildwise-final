@@ -57,9 +57,36 @@ const T = {
     labourOnly: "केवल लेबर", itemRate: "आइटम - आइटम रेट", gstExtra: "GST अलग से"
   }
 };
-const CITY_RATES: Record<string, number> = { mumbai: 3300, thane: 3100, pune: 2800, nagpur: 2000, nashik: 2400, aurangabad: 2300, "delhi ncr": 3200, bangalore: 3000, hyderabad: 2900, indore: 2200, bhopal: 2100, pohegaon: 1350, kopargaon: 1380, shirdi: 1420, ahmednagar: 2100, balaghat: 1520, seoni: 1510, mandla: 1500 };
+// === ADD ONLY - 7935 CITY + KHAMARIYA - NO CUT ===
+const STATE_BASE_7935: Record<string, number> = {
+  "maharashtra": 2000, "madhya pradesh": 1650, "uttar pradesh": 1750,
+  "gujarat": 2100, "rajasthan": 1800, "delhi": 3200, "karnataka": 2400,
+  "tamil nadu": 2300, "telangana": 2400, "andhra pradesh": 2200,
+  "west bengal": 1900, "bihar": 1600, "odisha": 1650, "assam": 1700,
+  "punjab": 2100, "haryana": 2200, "kerala": 2600, "jharkhand": 1600,
+  "chhattisgarh": 1650, "uttarakhand": 1900, "himachal pradesh": 2000,
+  "goa": 2800, "jammu and kashmir": 1900
+};
+const METRO_7935 = ["mumbai","delhi","bangalore","bengaluru","hyderabad","chennai","pune","kolkata","ahmedabad","nagpur","thane","nashik","aurangabad","indore","bhopal","jaipur","lucknow","kanpur","surat"];
+function get7935AutoRate(city: string, stateName: string): number {
+  const c = city.toLowerCase().trim();
+  const s = (stateName||"").toLowerCase().trim();
+  const base = STATE_BASE_7935[s] || 1700;
+  if (METRO_7935.includes(c)) return Math.round(base * 1.25);
+  return Math.round(base * 0.85);
+}
+// === END 7935 ADD ===
+const CITY_RATES: Record<string, number> = { mumbai: 3300, thane: 3100, pune: 2800, nagpur: 2000, nashik: 2400, aurangabad: 2300, "delhi ncr": 3200, bangalore: 3000, hyderabad: 2900, indore: 2200, bhopal: 2100, pohegaon: 1350, kopargaon: 1380, shirdi: 1420, ahmednagar: 2100, balaghat: 1520, seoni: 1510, mandla: 1500,
+  // === ADD ONLY - KHAMARIYA 1402 ===
+  khamariya: 1402, khamaria: 1402, jabalpur: 2050, bhusawal: 2000, khandwa: 2050, burhanpur: 2020, jalgaon: 2100, dewas: 2150, waraseoni: 1525, katangi: 1515 };
 const CITIES = Object.keys(CITY_RATES).map(k=>k.charAt(0).toUpperCase()+k.slice(1));
-function getRate(city: string){ return CITY_RATES[city.toLowerCase().trim()] || 1700; }
+function getRate(city: string, stateName: string = ""){ 
+  const k = city.toLowerCase().trim();
+  if (CITY_RATES[k]) return CITY_RATES[k];
+  // === ADD ONLY - 7935 FALLBACK - AGAR CITY LIST ME NAHI HAI TOH STATE SE BANAO, 1700 FIX NAHI ===
+  if (stateName) return get7935AutoRate(k, stateName);
+  return 1700; 
+}
 function inr(n:number){ return (Number(n)||0).toLocaleString("en-IN"); }
 function getLabel(s:string){ const n=parseInt(s); if(n===1) return "G+0 = Ground Floor Only"; return `G+${n-1} = Ground + ${n-1} Floors`; }
 function makeQuote(){ return `AW-${new Date().getFullYear()}-${Math.floor(1000+Math.random()*9000)}`; }
@@ -75,7 +102,6 @@ function inWords(n:number): string {
   return "Rupees "+s.trim()+" Only";
 }
 type Mat = { id:string; name:string; qty:number; rate:number; baseRate:number; company:string; companies:string[]; mult:number[]; cat:string; owner:boolean; unit:string; factor:number };
-// FIX 9: "- Best" / "- Budget" sab hata diya
 const COMP: Record<string,string[]> = {
   cement:["UltraTech OPC 43","ACC OPC 43","Ambuja OPC 43","Shree OPC 43"],
   steel:["Kamdhenu Fe500","Tata Tiscon Fe500","JSW Neosteel Fe500","Jindal Panther Fe500"],
@@ -107,6 +133,8 @@ const MULT = [1, 0.96, 1.07, 0.90];
 const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number, pkgRate:number, contract:string): Mat[] => {
   const doorsQty = bhk===1 ? 6 : bhk===2 ? 8 : 10;
   const f = (cityRate/2000) * (pkgRate/2000);
+  // === ADD ONLY - FULL AUTOMATIC MATERIAL FACTOR - SAB MATERIAL CITY SE BADLEGA ===
+  const fCity = cityRate/2000; // Khamariya 1402 => 0.70, Nagpur 2000 => 1.0, Mumbai 3300 => 1.65
   const curingDays = 14 + (storeysNum * 7);
   const mk = (id:string, name:string, qty:number, base:number, cat:string, owner:boolean, unit:string, factor:number):Mat => ({ id, name, qty, rate: Math.round(base), baseRate: Math.round(base), company: COMP[cat][0], companies: COMP[cat], mult: MULT, cat, owner, unit, factor });
   const all: Mat[] = [
@@ -120,21 +148,22 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("tiles","Tiles", Math.round(built*0.85), 110*f, "tiles", true, "Sqft", 0.85),
     mk("marble","Italian Marble", Math.round(built*0.85), 350*f, "marble", true, "Sqft", 0.85),
     mk("paint","Paint", Math.round(built*0.12), 220*(pkgRate/2000), "paint", true, "Ltr", 0.12),
-    mk("waterproofing","Waterproofing", Math.round(built*0.50), 45, "waterproofing", true, "Sqft", 0.50),
-    mk("doors","Doors", doorsQty, 12000*(pkgRate/2000), "doors", true, "Nos", 0),
-    mk("windows","Windows", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000), "windows", true, "Nos", 0),
-    mk("glass","Glass", Math.round(built*0.15), 180, "glass", true, "Sqft", 0.15),
-    mk("railing","Railing SS304", Math.round(built*0.12), 450, "railing", true, "Rft", 0.12),
-    mk("pop","POP / Ceiling", Math.round(built*0.75), 55, "pop", true, "Sqft", 0.75),
-    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000), "sanitary", true, "Set", 0),
-    mk("ply","Ply - Centering", Math.round(built*0.90), 95, "ply", false, "Sqft", 0.90),
-    mk("batta","Batta - Sagwan", Math.round(built*0.60), 65, "batta", false, "Rft", 0.60),
-    mk("jack","Jack Prop", Math.round(built*0.08), 120, "jack", false, "Nos", 0.08),
-    mk("mistri","Mistri", Math.round(built*0.15), 750, "mistri", false, "Days", 0.15),
-    mk("beldar","Beldar", Math.round(built*0.25), 500, "beldar", false, "Days", 0.25),
-    mk("curing","Curing", curingDays, 800, "curing", false, "Days", 0),
-    mk("contingency","Contingency + Supervision", built, 25, "contingency", false, "Sqft", 1),
-    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000, "lift", false, "Nos", 0),
+    // === ADD ONLY - PEHLE YE SAB FIXED THE (45, 12000, 8500...) AB CITY SE BADLENGE ===
+    mk("waterproofing","Waterproofing", Math.round(built*0.50), 45*fCity, "waterproofing", true, "Sqft", 0.50),
+    mk("doors","Doors", doorsQty, 12000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0),
+    mk("windows","Windows", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000)*fCity, "windows", true, "Nos", 0),
+    mk("glass","Glass", Math.round(built*0.15), 180*fCity, "glass", true, "Sqft", 0.15),
+    mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12),
+    mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75),
+    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0),
+    mk("ply","Ply - Centering", Math.round(built*0.90), 95*fCity, "ply", false, "Sqft", 0.90),
+    mk("batta","Batta - Sagwan", Math.round(built*0.60), 65*fCity, "batta", false, "Rft", 0.60),
+    mk("jack","Jack Prop", Math.round(built*0.08), 120*fCity, "jack", false, "Nos", 0.08),
+    mk("mistri","Mistri", Math.round(built*0.15), 750*fCity, "mistri", false, "Days", 0.15),
+    mk("beldar","Beldar", Math.round(built*0.25), 500*fCity, "beldar", false, "Days", 0.25),
+    mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0),
+    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1),
+    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0),
   ];
   if(contract==="labour") return all.filter(m=> ["mistri","beldar","curing","contingency"].includes(m.id));
   return all.filter(m=> !(m.id==="lift" && m.qty===0));
@@ -144,6 +173,8 @@ export default function Page(){
   const t = T[lang];
   const [phase,setPhase]=useState(1);
   const [geo,setGeo]=useState("Nagpur");
+  // === ADD ONLY - STATE FOR 7935 ===
+  const [geoState,setGeoState]=useState("Maharashtra");
   const [showCityDrop,setShowCityDrop]=useState(false);
   const [plot,setPlot]=useState("2000");
   const [cov,setCov]=useState(64);
@@ -168,14 +199,14 @@ export default function Page(){
   const [quoteNo,setQuoteNo]=useState("AW-2026-0000");
   const [today,setToday]=useState("");
   const [validTill,setValidTill]=useState("");
-  // FIX: Company details editable - Phone / Email / Address / Website / GSTIN
   const [compPhone,setCompPhone]=useState("");
   const [compEmail,setCompEmail]=useState("");
   const [compAddress,setCompAddress]=useState("");
   const [compWebsite,setCompWebsite]=useState("");
   const [compGstin,setCompGstin]=useState("");
   const editedIds = useRef<Set<string>>(new Set());
-  const cityRate = getRate(geo);
+  // === ADD ONLY - CITY RATE AB STATE KE SAATH AAYEGA ===
+  const cityRate = getRate(geo, geoState);
   const plotNum = parseInt(plot)||0;
   const ground = Math.round(plotNum*cov/100);
   const builtRaw = ground*(parseInt(storeys)||1);
@@ -218,7 +249,8 @@ export default function Page(){
   };
   const savePkg = ()=>{ const r=parseInt(eRate); if(!r||r<=0) return alert("Sahi Rate dalo"); setPkgRates(p=>({...p,[editPkg as string]:r})); setEditPkg(null); };
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
-  const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||geo; setGeo(c); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
+  // === ADD ONLY - GPS ME STATE BHI PAKDEGA ===
+  const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const st=d.address?.state||geoState; setGeo(c); setGeoState(st); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
   const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
   const saveEst = ()=>{ const e={name:cname||"No Name",geo,built:built115,total:finalTotal,date:today,quoteNo,version}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history_v37",JSON.stringify(nh)); }catch(e){} alert(`Estimate ${version} Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote_v37",nq); }catch(e){} };
   const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${cname||geo} - ${geo} - ${bhk} BHK - Built ${built115} Sqft - ${contract} - Total Rs.${inr(finalTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(finalTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
@@ -251,7 +283,6 @@ export default function Page(){
     doc.setFont("helvetica","normal"); doc.setTextColor(0,0,0); doc.setFontSize(8);
     mats.forEach((m,i)=>{ if(y>250){doc.addPage(); y=14;} doc.text(`${i+1}.`,15,y); doc.text(`${m.name} - ${m.company}`.substring(0,42),24,y); doc.text(`${m.qty} ${m.unit}`,110,y); doc.text(`Rs.${m.rate}`,140,y); doc.text(`Rs.${inr(m.qty*m.rate)}`,165,y); y+=5.5; });
     y+=4; doc.setFont("helvetica","bold"); doc.setFontSize(9);
-    // FIX 4: PDF BUG - pehle {inr(labourCost)} tha
     doc.text(`Owner Rs.${inr(ownerCost)} + Contractor Rs.${inr(contCost)} + Labour Rs.${inr(labourCost)} + Profit Rs.${inr(profit)} = Rs.${inr(baseTotal)}`,14,y); y+=7;
     const payLine = isHi ? `Bhugtan: 30% Plinth Rs.${inr(Math.round(finalTotal*0.30))} | 30% Slab Rs.${inr(Math.round(finalTotal*0.30))} | 30% Plaster Rs.${inr(Math.round(finalTotal*0.30))} | 10% Handover Rs.${inr(Math.round(finalTotal*0.10))}` : `Payment: 30% On Plinth Rs.${inr(Math.round(finalTotal*0.30))} | 30% On Slab Rs.${inr(Math.round(finalTotal*0.30))} | 30% On Plaster Rs.${inr(Math.round(finalTotal*0.30))} | 10% On Handover Rs.${inr(Math.round(finalTotal*0.10))}`;
     const payLines = doc.splitTextToSize(payLine, 182); doc.text(payLines,14,y); y += payLines.length*5+2;
@@ -266,7 +297,7 @@ export default function Page(){
   const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); try{ localStorage.setItem("aw_quote_v37",q); }catch(e){} alert(`Naya Quote: ${q}`); };
   useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
   useEffect(()=>{ rebuildBOQ(false); },[]);
-  useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgRates]);
+  useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgRates, geoState]);
   useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history_v37")||"[]"); setHistory(h); const d=JSON.parse(localStorage.getItem("aw_draft_v37")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
     const c=JSON.parse(localStorage.getItem("aw_company_v37")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.email) setCompEmail(c.email); if(c.address) setCompAddress(c.address); if(c.website) setCompWebsite(c.website); if(c.gstin) setCompGstin(c.gstin);
   }catch(e){} },[]);
@@ -275,7 +306,6 @@ export default function Page(){
   return (
   <div className="min-h-screen bg-[#02020a] text-white p-2 pb-32">
     <div className="max-w-[720px] mx-auto">
-      {/* FIX 1 & 2: Logo + Nagpur hata diya, Phone/Email editable bana diya */}
       <div className="bg-[#0f141f] border border-[#d4af37]/20 rounded-2xl px-4 py-3 mb-2 text-center">
         <b className="whitespace-nowrap text-[16px]">{COMPANY.name} <span className="text-[#d4af37]">- V37 FINAL</span></b>
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-left">
@@ -302,9 +332,8 @@ export default function Page(){
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract":n===2?"2. Location":"3. Final"}</button>)}</div>
-      {/* FIX 10: Total Box alag-alag line me */}
       <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center">
-        <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today}</div>
+        <div className="text-[12px] text-[#d4af37] font-bold">Base Rs.{cityRate} | Built-up {built115} Sqft ({sqmt} Sqmt) | {today} | {geo} - {geoState}</div>
         <div className="font-black text-[18px]">Total Rs.{inr(finalTotal)}</div>
         <div className="text-[12px] flex flex-col gap-0.5">
           <span>Owner Rs.{inr(ownerCost)}</span>
@@ -349,11 +378,13 @@ export default function Page(){
             {showCityDrop && filteredCities.length>0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a2332] border rounded-2xl overflow-hidden z-20 max-h-[220px] overflow-y-auto">
                 {filteredCities.map(c=>(
-                  <button key={c} onMouseDown={()=>{setGeo(c); setShowCityDrop(false);}} className="w-full text-left px-4 py-2.5 text-[13px] border-b border-white/10 last:border-0 hover:bg-white/10">{c} - Rs.{getRate(c)} / sqft</button>
+                  <button key={c} onMouseDown={()=>{setGeo(c); setShowCityDrop(false);}} className="w-full text-left px-4 py-2.5 text-[13px] border-b border-white/10 last:border-0 hover:bg-white/10">{c} - Rs.{getRate(c, geoState)} / sqft</button>
                 ))}
               </div>
             )}
           </div>
+          <label className="block mt-2 text-[12px] font-bold">State: {geoState} - GPS se Auto Aayega | Koi bhi Gaon likho toh State se Rate banega</label>
+          <input value={geoState} onChange={e=>setGeoState(e.target.value)} placeholder="State - Madhya Pradesh / Maharashtra" className="w-full bg-black border rounded-full px-4 py-3 mt-1" />
           <label className="block mt-3 text-[12px] font-bold">📸 Site Photo Upload - PDF me bhi jayegi {sitePhoto && <span className="text-green-400">✓ Photo Selected</span>}</label>
           <input type="file" accept="image/*" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setSitePhoto(String(r.result)); r.readAsDataURL(f); } }} className="w-full bg-black border rounded-full px-3 py-2 mt-1 text-[12px]" />
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
@@ -370,14 +401,12 @@ export default function Page(){
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4">
         <div className="flex justify-between mb-3"><h2 className="font-black text-[#d4af37]">{t.page3} - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10">{t.back}</button></div>
         <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1"><span>Owner Rs.{inr(ownerCost)}</span><span>Contractor Rs.{inr(contCost)}</span><span>Labour Rs.{inr(labourCost)}</span><span>Profit Rs.{inr(profit)}</span><span className="font-bold">= Rs.{inr(baseTotal)} {gstOn?`+ GST ${inr(gstAmt)}`:"+ GST Extra (Alag Se)"} = Rs.{inr(finalTotal)}</span><span>{today} | {t.valid}: {validTill}</span></div>
-        <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"}</span></td><td className="text-right whitespace-nowrap">{m.qty} {m.unit}<br/>x Rs.{m.rate}<br/>= <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
+        <table className="w-full text-[13px]"><tbody>{list.map((m,i)=>(<tr key={m.id} className="border-b border-white/10"><td className="py-2 pr-1">{i+1}. {m.name}<br/><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-1 py-0.5 text-[11px] mt-1"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><br/><span className="text-[11px] text-white/60">{m.factor?`${m.factor} ${m.unit}/sqft`:"Fixed"} | {m.owner?"Owner":"Contractor"} | Live: Rs.{m.rate}</span></td><td className="text-right whitespace-nowrap">{m.qty} {m.unit}<br/>x Rs.{m.rate}<br/>= <b>Rs.{inr(m.qty*m.rate)}</b></td><td><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="ml-2 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button></td></tr>))}</tbody></table>
         {sitePhoto && <div className="mt-3"><b className="text-[12px]">Site Photo - PDF me bhi jayegi</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
-        {/* FIX 8: Payment alag-alag line me */}
         <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px]"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1"><span>{t.pay1} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay2} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay3} - Rs.{inr(Math.round(finalTotal*0.30))}</span><span>{t.pay4} - Rs.{inr(Math.round(finalTotal*0.10))}</span></div><b className="text-[#d4af37] block mt-2">{t.timeline}: {timeline} | {t.valid}: {validTill} (30 Days)</b><div className="mt-1">{t.notInc}</div></div>
         <div className="font-black text-[18px] mt-3">{t.final}: Rs.{inr(finalTotal)} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic mt-1">{inWords(finalTotal)}</div>
         <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{t.terms.map((term,idx)=><div key={idx}>{idx+1}. {term}</div>)}</div>
-        {/* FIX 12: Signature Box kata nahi - min-h + pb badhaya */}
         <div className="grid grid-cols-3 gap-2 mt-3 text-center text-[11px] pb-4">
           <div className="border rounded-[12px] p-3 min-h-[110px]">{lang==="hi"?"ग्राहक":"Client"}<br/><br/>________________<br/>{lang==="hi"?"हस्ताक्षर व तारीख":"Signature & Date"}</div>
           <div className="border rounded-[12px] p-3 min-h-[110px]">{lang==="hi"?"ठेकेदार":"Contractor"}<br/><br/>________________<br/>{lang==="hi"?"हस्ताक्षर व तारीख":"Signature & Date"}</div>
@@ -386,7 +415,6 @@ export default function Page(){
         <div className="text-center mt-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://wa.me/91${compPhone || "9823000000"}`} alt="WhatsApp QR" className="mx-auto border border-white/20 p-1 bg-white" /><div className="text-[11px] mt-1">{t.scan}</div></div>
         <div className="flex gap-2 mt-3"><button onClick={wa} className="flex-1 bg-green-600 rounded-full py-3 font-bold">{t.whatsapp}</button><button onClick={pdf} className="flex-1 bg-blue-600 rounded-full py-3 font-bold">{t.download}</button></div>
         <div className="flex gap-2 mt-2"><button onClick={saveEst} className="flex-1 bg-white/10 rounded-full py-3">💾 {t.save}</button><button onClick={newQuote} className="flex-1 bg-[#d4af37] text-black rounded-full py-3 font-bold">🆕 {t.newQuote}</button></div>
-        {/* FIX 13: History khali ho toh section hi hide */}
         {history.length>0 && <div className="mt-3"><b className="text-[13px]">{t.history}</b>{history.map((h,i)=><div key={i} className="text-[12px] bg-white/5 px-2 py-1.5 rounded-full mt-1">{h.version} - {h.quoteNo} - {h.name} - {h.built} Sqft - Rs.{inr(h.total)} - {h.date}</div>)}</div>}
       </div>}
     </div>
