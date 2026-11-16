@@ -225,8 +225,15 @@ function SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
   const endDraw = () => { if(!isDrawing) return; setIsDrawing(false); if(canvasRef.current) onChange(canvasRef.current.toDataURL()); };
   const clear = () => { onChange(""); const c = canvasRef.current; if(c) c.getContext("2d").clearRect(0,0,c.width,c.height); };
   return (
-    <div className="bg-white text-black rounded-xl p-3 border min-w-0">
-      <p className="font-bold text-center text-sm break-words">{label}</p>export default function Page(){
+      <div className="bg-white text-black rounded-xl p-3 border min-w-0">
+      <p className="font-bold text-center text-sm break-words">{label}</p>
+      {value ? <img src={value} alt="sign" className="h-[90px] w-full object-contain bg-white border rounded my-2" /> : <canvas ref={canvasRef} width={260} height={90} onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} className="w-full h-[90px] bg-[#fffbe6] border border-dashed rounded my-2 touch-none" />}
+      <p className="text-[11px] text-center text-gray-500 break-words">{hint}</p>
+      <button onClick={clear} className="w-full mt-2 bg-red-100 text-red-600 text-xs py-2 rounded break-words">X {clearLabel}</button>
+    </div>
+  );
+}
+export default function Page(){
   const [lang,setLang] = useState<Lang>("en");
   const t = T[lang];
   const [phase,setPhase]=useState(1);
