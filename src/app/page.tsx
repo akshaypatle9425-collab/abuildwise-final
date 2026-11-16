@@ -161,7 +161,6 @@ const COMP: Record<string,string[]> = {
   curing:["Local Curing","Pond Curing","Spray Curing","Gunny Curing"],
   contingency:["Site Supervision","Site Engineer","Supervisor","Self Supervision"],
   lift:["OTIS","KONE","Schindler","Johnson"],
-  // FIX-ITEM-RATE-ADD: purani koi line cut nahi, sirf ye 1 line add ki hai
   itemwork:["Item Work"],
 };
 const MULT = [1, 0.96, 1.07, 0.90];
@@ -172,7 +171,6 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
   const curingDays = 14 + (storeysNum * 7);
   const labourDays = Math.round(built * 0.10);
   const mk = (id:string, name:string, qty:number, base:number, cat:string, owner:boolean, unit:string, factor:number, displayFactor:string):Mat => ({ id, name, qty, rate: Math.round(base), baseRate: Math.round(base), company: COMP[cat][0], companies: COMP[cat], mult: MULT, cat, owner, unit, factor, displayFactor });
-  // FIX-3-ITEM-RATE: purana all[] same hai, sirf item ke liye alag list ADD ki hai, purana kuch cut nahi
   if(contract==="item"){
     return [
       mk("item-brick","Brickwork - Labour", built, 38, "itemwork", false, "Sqft", 1, "38 per Sqft Labour"),
@@ -211,11 +209,9 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
   ];
   if(contract==="labour") return all.filter(m=> ["mistri","beldar","curing","contingency"].includes(m.id));
-  // FIX-2-CENTRING: purani line same hai, sirf ye 1 line ADD ki hai
   if(contract==="centring") return all.filter(m=> !m.owner && !(m.id==="lift" && m.qty===0));
   return all.filter(m=> !(m.id==="lift" && m.qty===0));
 };
-// ZERO KAMI FIX: Signature - sirf finger, photo upload hataya
 function SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
   const canvasRef = useRef<any>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -297,15 +293,8 @@ export default function Page(){
   };
   const ownerMats = mats.filter(m=>m.owner);
   const contMats = mats.filter(m=>!m.owner);
-  // FIX-1-LABOUR-DOUBLE + FIX-2-OWNER-COST: purani 2 line neeche comment me rakhi hai, nayi 2 line ADD ki hai - koi word delete nahi
-  // OLD: const ownerCost = ownerMats.reduce((s,m)=>s+m.qty*m.rate,0);
-  // OLD: const contCost = contMats.reduce((s,m)=>s+m.qty*m.rate,0);
   const ownerCost = contract==="full" ? ownerMats.reduce((s,m)=>s+m.qty*m.rate,0) : 0;
   const contCost = contMats.reduce((s,m)=>s+m.qty*m.rate,0);
-  // OLD: const labourRate = contract==="full" ? 550 : contract==="centring" ? 450 : 0;
-  // OLD: const labourCost = built115*labourRate;
-  // OLD: const subTotal = ownerCost + contCost + labourCost;
-  // FIX-1: Labour BOQ me hai, alag se mat jodo - isliye labourRate/labourCost 0 rakha, purani line comment me safe hai
   const labourRate = 0;
   const labourCost = 0;
   const subTotal = ownerCost + contCost;
@@ -331,7 +320,6 @@ export default function Page(){
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const stRaw=d.address?.state||geoState; const st=getStateForCity(c, stRaw); setGeo(c); setGeoState(st); setPkgOverride({}); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
   const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
-  // FIX-HISTORY: purani saveEst line same hai, sirf contract ADD kiya hai, koi word cut nahi
   const saveEst = ()=>{ if(!validate()) return; const e={name:cname||"No Name",geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} alert(`Estimate Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote",nq); }catch(e){} };
   const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${cname||geo} - ${geo} - ${bhk} BHK - Built ${built115} Sqft - ${contract} - Total Rs.${inr(displayTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(displayTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
   const pdf = async ()=>{
@@ -339,8 +327,6 @@ export default function Page(){
     if(!validate()) return;
     if(!compPhone.trim() || !compAddress.trim() || !compWebsite.trim() || !compGstin.trim()){ alert(lang==="hi"?"Pehle upar Company Phone / Address / Website / GSTIN bhare, tabhi PDF banegi":"Please fill Company Phone, Address, Website and GSTIN above before PDF"); return; }
     const doc=new jsPDF();
-    // FIX-5-PDF-HINDI: purani line comment me rakhi hai, nayi line ADD ki hai - Helvetica Hindi support nahi karta, isliye PDF hamesha English
-    // OLD: const isHi = lang==="hi";
     const isHi = false;
     const DISPLAY_PHONE = compPhone;
     const DISPLAY_EMAIL = compEmail || compPhone;
@@ -361,11 +347,8 @@ export default function Page(){
     doc.text(webLines, compLogo ? 36 : 14, 35);
     doc.setTextColor(0,0,0);
     doc.setFontSize(10); doc.setFont("helvetica","bold");
-    // FIX-PDF-HINDI-2: isHi ab hamesha false hai, isliye ye line English me hi banegi, purani Hindi line comment me safe hai
-    // OLD: const quoteLines = doc.splitTextToSize(isHi ? `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Din)` : `Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 182);
     const quoteLines = doc.splitTextToSize(`Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 182);
     doc.text(quoteLines,14,48);
-    // OLD: const clientLines = doc.splitTextToSize(isHi ? `Graahak: ${cname||"Not Provided"} | Phone: ${maskPhone(cphone)}` : `Client: ${cname||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 182);
     const clientLines = doc.splitTextToSize(`Client: ${cname||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 182);
     doc.text(clientLines,14,55);
     const plotLines = doc.splitTextToSize(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt)`, 182);
@@ -387,7 +370,6 @@ export default function Page(){
     const drawTableHeader = (yy:number)=>{
       doc.setFillColor(212,175,55); doc.rect(14, yy, 182, 7, "F");
       doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9);
-      // OLD: doc.text("No.",15,yy+5); doc.text(isHi?"Item":"Item",24,yy+5); doc.text("Qty",110,yy+5); doc.text("Rate",140,yy+5); doc.text("Amount",165,yy+5);
       doc.text("No.",15,yy+5); doc.text("Item",24,yy+5); doc.text("Qty",110,yy+5); doc.text("Rate",140,yy+5); doc.text("Amount",165,yy+5);
       return yy+7;
     };
@@ -411,16 +393,13 @@ export default function Page(){
     y+=4; doc.setFont("helvetica","bold"); doc.setFontSize(9);
     const totalLines = doc.splitTextToSize(`Grand Total = Rs.${inr(displayTotal)}`,182);
     doc.text(totalLines,14,y); y+= totalLines.length*5+2;
-    // OLD: const payLine = isHi ? `Bhugtan: 30% Plinth Rs.${inr(pay30)} | 30% Slab Rs.${inr(pay30)} | 30% Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}` : `Payment: 30% On Plinth Rs.${inr(pay30)} | 30% On Slab Rs.${inr(pay30)} | 30% On Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}`;
     const payLine = `Payment: 30% On Plinth Rs.${inr(pay30)} | 30% On Slab Rs.${inr(pay30)} | 30% On Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}`;
     const payLines = doc.splitTextToSize(payLine, 182); doc.text(payLines,14,y); y += payLines.length*5+2;
     doc.setFont("helvetica","normal");
-    // FIX-PDF-HINDI-3: t.notInc Hindi me toot-ta tha, isliye PDF me English wala notInc rakha, purana t.notInc App me same hai
     const notIncLines = doc.splitTextToSize("NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior", 182); doc.text(notIncLines,14,y); y+=notIncLines.length*5+2;
     doc.setFont("helvetica","bold"); doc.setFontSize(10);
     const termsTitleLines = doc.splitTextToSize("TERMS & CONDITIONS:", 182); doc.text(termsTitleLines,14,y); y+=6;
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
-    // FIX-PDF-HINDI-4: t.terms Hindi me toot-ta tha, isliye PDF me English terms rakhe, App me Hindi terms same hai
     const pdfTerms = ["Validity: This estimate is valid for 30 days from date of issue.","Scope: Only BOQ items included. Extra work charged separately.","Approvals: Govt approvals, map passing, NOC are client's responsibility.","Site Facilities: Client to provide site access, water, electricity & storage.","Price Variation: If material prices rise above 5%, difference adjusted.","Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover. Delay beyond 7 days may pause work.","Timeline: Approximate, subject to weather & timely payments.","Warranty: 1 Year Structural Warranty from handover.","Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.","Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India."];
     pdfTerms.forEach((term,idx)=>{ const lines = doc.splitTextToSize(`${idx+1}. ${term}`,182); if(y + lines.length*4.5 > 265){doc.addPage(); y=14;} doc.text(lines,14,y); y+=lines.length*4.5+1; });
     y+=8; doc.setFontSize(10);
@@ -433,7 +412,6 @@ export default function Page(){
     if(clientSign){ try{ doc.addImage(clientSign, "PNG", 14, y, 45, 18); }catch(e){} }
     if(contractorSign){ try{ doc.addImage(contractorSign, "PNG", 85, y, 45, 18); }catch(e){} }
     y+=22;
-    // OLD: const signLines = doc.splitTextToSize(isHi ? `Hastakshar: Graahak ${cname||""}` : `Signature: Client ${cname||""}`, 182);
     const signLines = doc.splitTextToSize(`Signature: Client ${cname||""}`, 182);
     doc.text(signLines,14,y); y+=6;
     const signLines2 = doc.splitTextToSize(`Contractor __________  Stamp: __________  Date: ${today}`, 182);
@@ -580,11 +558,5 @@ export default function Page(){
     {editMat!==null && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black break-words">Edit {list[editMat].name}</h3><input value={eQty} onChange={e=>setEQty(e.target.value)} placeholder="Qty" className="w-full border rounded-full px-3 py-2 mt-2 text-black min-w-0" /><input value={eMatRate} onChange={e=>setEMatRate(e.target.value)} placeholder="Rate" className="w-full border rounded-full px-3 py-2 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Save dabate hi Total badlega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditMat(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={()=>saveMat(editMat)} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
     {editPkg && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black capitalize break-words">Edit {editPkg} Package</h3><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" className="w-full border rounded-full px-3 py-3 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Abhi: Rs.{pkgRates[editPkg]} | Save ke baad Auto-Rebuild ho jayega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
   </div>
-  );
-}
-      {value ? <img src={value} alt="sign" className="h-[90px] w-full object-contain bg-white border rounded my-2" /> : <canvas ref={canvasRef} width={260} height={90} onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} className="w-full h-[90px] bg-[#fffbe6] border border-dashed rounded my-2 touch-none" />}
-      <p className="text-[11px] text-center text-gray-500 break-words">{hint}</p>
-      <button onClick={clear} className="w-full mt-2 bg-red-100 text-red-600 text-xs py-2 rounded break-words">❌ {clearLabel}</button>
-    </div>
   );
 }
