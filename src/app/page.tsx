@@ -4,6 +4,64 @@ import { jsPDF } from "jspdf";
 
 const COMPANY = { name:"ABuildWise Construction" };
 type Lang = "en" | "hi";
+
+// FIX 8 - Auto Capital Name
+function capName(s:string){ return s.trim().split(/\s+/).map(w=> w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" "); }
+
+// FIX 6 + 7 - Terms & NOT Included Contract ke hisaab se
+function getTerms(contract:string, lang:Lang){
+  const baseEn = [
+    "Validity: This estimate is valid for 30 days from date of issue.",
+    "Scope: Only BOQ items included. Extra work charged separately.",
+    "Approvals: Govt approvals, map passing, NOC are client's responsibility.",
+    "Site Facilities: Client to provide site access, water, electricity & storage.",
+  ];
+  const baseHi = [
+    "वैधता: यह अनुमान जारी होने की तारीख से 30 दिनों तक मान्य है।",
+    "कार्यक्षेत्र: केवल BOQ वाले काम शामिल हैं। अतिरिक्त काम का शुल्क अलग से लगेगा।",
+    "अनुमोदन: सरकारी अनुमति, नक्शा पासिंग, NOC ग्राहक की जिम्मेदारी है।",
+    "साइट सुविधा: ग्राहक साइट एक्सेस, पानी, बिजली व स्टोरेज देगा।",
+  ];
+  const isLabour = contract==="labour" || contract==="item" || contract==="centring";
+  if(lang==="hi"){
+    if(isLabour) return [...baseHi,
+      "भुगतान: 30% प्लिंथ, 30% स्लैब, 30% प्लास्टर, 10% हैंडओवर पर। 7 दिन से ज्यादा देरी पर काम रुक सकता है।",
+      "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।",
+      "लेबर ओनली: मटीरियल ग्राहक देगा। मटीरियल की कोई वारंटी ठेकेदार की नहीं है।",
+      "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।",
+      "विवाद: न्यायालय क्षेत्र - नागपुर, महाराष्ट्र, भारत।"
+    ];
+    return [...baseHi,
+      "मूल्य परिवर्तन: यदि मटीरियल के दाम 5% से ज्यादा बढ़े तो अंतर लिया जाएगा।",
+      "भुगतान: 30% प्लिंथ, 30% स्लैब, 30% प्लास्टर, 10% हैंडओवर पर। 7 दिन से ज्यादा देरी पर काम रुक सकता है।",
+      "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।",
+      "वारंटी: हैंडओवर से 1 साल की स्ट्रक्चरल वारंटी।",
+      "बाहर: बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।",
+      "विवाद: न्यायालय क्षेत्र - नागपुर, महाराष्ट्र, भारत।"
+    ];
+  }
+  if(isLabour) return [...baseEn,
+    "Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover. Delay beyond 7 days may pause work.",
+    "Timeline: Approximate, subject to weather & timely payments.",
+    "Labour Only: Material will be provided by Client. No warranty on Client-supplied material.",
+    "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.",
+    "Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India."
+  ];
+  return [...baseEn,
+    "Price Variation: If material prices rise above 5%, difference adjusted.",
+    "Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover. Delay beyond 7 days may pause work.",
+    "Timeline: Approximate, subject to weather & timely payments.",
+    "Warranty: 1 Year Structural Warranty from handover.",
+    "Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.",
+    "Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India."
+  ];
+}
+function getNotInc(contract:string, lang:Lang){
+  const isLabour = contract==="labour" || contract==="item" || contract==="centring";
+  if(lang==="hi") return isLabour ? "शामिल नहीं है: मटीरियल, सरकारी अनुमति, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर" : "शामिल नहीं है: सरकारी अनुमति, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर";
+  return isLabour ? "NOT Included: Material, Govt Approval, Borewell, Compound Wall, Furniture, Interior" : "NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior";
+}
+
 const T = {
   en: {
     appTitle: "Estimate", final: "Final", download: "Download PDF", whatsapp: "WhatsApp", save: "Save Quote", newQuote: "New Quote",
@@ -11,25 +69,11 @@ const T = {
     page1: "Page 1 - Contract + Plot + BHK", page2: "Page 2 - Location + Package", page3: "Page 3 - Final",
     nextLoc: "Next - Location →", nextFinal: "Next - Final →", back: "Back",
     paymentTitle: "Payment", timeline: "Timeline", valid: "Valid",
-    notInc: "NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior",
     termsTitle: "TERMS & CONDITIONS:",
     pay1: "30% On Plinth Completion", pay2: "30% On Slab Completion", pay3: "30% On Plaster Completion", pay4: "10% On Handover",
-    terms: [
-      "Validity: This estimate is valid for 30 days from date of issue.",
-      "Scope: Only BOQ items included. Extra work charged separately.",
-      "Approvals: Govt approvals, map passing, NOC are client's responsibility.",
-      "Site Facilities: Client to provide site access, water, electricity & storage.",
-      "Price Variation: If material prices rise above 5%, difference adjusted.",
-      "Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover. Delay beyond 7 days may pause work.",
-      "Timeline: Approximate, subject to weather & timely payments.",
-      "Warranty: 1 Year Structural Warranty from handover.",
-      "Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.",
-      "Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India."
-    ],
     scan: "Scan to Chat on WhatsApp", history: "History", noHistory: "No history yet",
     withMat: "With Material - Turnkey", withoutMat: "Without Material - Centering + Labour",
     labourOnly: "Labour Only", itemRate: "Item - Item Rate", gstExtra: "GST Extra",
-    boqOk: "BOQ Sum = Grand Total - No Difference",
     onlyLabourDesc: "Only Mistri/Beldar - No Ply/Batta - No Extra Labour",
     itemDesc: "Separate Rate For Each Work - Brickwork / Plaster / Flooring Separate - No Extra Labour",
     bhkSelect: "BHK - Select Only One",
@@ -40,7 +84,7 @@ const T = {
     photoSelected: "Photo Selected", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
     approx: "Approximate. Final may vary 10-15%. Valid till",
     clientSign: "Client", contractorSign: "Contractor", stamp: "Stamp", signDate: "Signature & Date", companySeal: "Company Seal",
-    signHint: "Sign here with finger only - Photo not allowed", uploadPhoto: "Upload Photo", clear: "Clear",
+    signHint: "Sign here with finger only - Photo not allowed", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   },
   hi: {
@@ -49,25 +93,11 @@ const T = {
     page1: "पेज 1 - ठेका + प्लॉट + BHK", page2: "पेज 2 - लोकेशन + पैकेज", page3: "पेज 3 - फाइनल",
     nextLoc: "आगे - लोकेशन →", nextFinal: "आगे - फाइनल →", back: "पीछे",
     paymentTitle: "भुगतान", timeline: "समय", valid: "मान्य",
-    notInc: "शामिल नहीं है: सरकारी अनुमति, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर",
     termsTitle: "नियम व शर्तें:",
     pay1: "30% प्लिंथ पूरा होने पर", pay2: "30% स्लैब पूरा होने पर", pay3: "30% प्लास्टर पूरा होने पर", pay4: "10% हैंडओवर पर",
-    terms: [
-      "वैधता: यह अनुमान जारी होने की तारीख से 30 दिनों तक मान्य है।",
-      "कार्यक्षेत्र: केवल BOQ वाले काम शामिल हैं। अतिरिक्त काम का शुल्क अलग से लगेगा।",
-      "अनुमोदन: सरकारी अनुमति, नक्शा पासिंग, NOC ग्राहक की जिम्मेदारी है।",
-      "साइट सुविधा: ग्राहक साइट एक्सेस, पानी, बिजली व स्टोरेज देगा।",
-      "मूल्य परिवर्तन: यदि मटीरियल के दाम 5% से ज्यादा बढ़े तो अंतर लिया जाएगा।",
-      "भुगतान: 30% प्लिंथ, 30% स्लैब, 30% प्लास्टर, 10% हैंडओवर पर। 7 दिन से ज्यादा देरी पर काम रुक सकता है।",
-      "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।",
-      "वारंटी: हैंडओवर से 1 साल की स्ट्रक्चरल वारंटी।",
-      "बाहर: बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।",
-      "विवाद: न्यायालय क्षेत्र - नागपुर, महाराष्ट्र, भारत।"
-    ],
     scan: "व्हाट्सऐप पर बात करने के लिए स्कैन करें", history: "हिस्ट्री", noHistory: "अभी कोई हिस्ट्री नहीं है",
     withMat: "मटीरियल सहित - टर्नकी", withoutMat: "बिना मटीरियल - सेंटरिंग + लेबर",
     labourOnly: "केवल लेबर", itemRate: "आइटम - आइटम रेट", gstExtra: "GST अलग से",
-    boqOk: "BOQ Sum = Grand Total - Koi Fark Nahi",
     onlyLabourDesc: "Sirf Mistri/Beldar - Ply/Batta Nahi - No Extra Labour",
     itemDesc: "Har Kaam ka Alag Item Rate - Brickwork / Plaster / Flooring Alag - No Extra Labour",
     bhkSelect: "BHK - Ek hi chunenge",
@@ -78,7 +108,7 @@ const T = {
     photoSelected: "Photo Selected", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
     approx: "Approximate. Final may vary 10-15%. Valid till",
     clientSign: "ग्राहक", contractorSign: "ठेकेदार", stamp: "मुहर", signDate: "हस्ताक्षर व तारीख", companySeal: "कंपनी की मुहर",
-    signHint: "Yahan sirf ungli se sign karo - Photo mat daalo", uploadPhoto: "Photo Upload", clear: "Clear",
+    signHint: "Yahan sirf ungli se sign karo - Photo mat daalo", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   }
 };
@@ -212,6 +242,7 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
   if(contract==="centring") return all.filter(m=> !m.owner && !(m.id==="lift" && m.qty===0));
   return all.filter(m=> !(m.id==="lift" && m.qty===0));
 };
+// FIX - Signature: Photo Upload CUT. Only finger canvas + Clear. No file input.
 function SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
   const canvasRef = useRef<any>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -267,6 +298,8 @@ export default function Page(){
   const [compLogo,setCompLogo]=useState<string>("");
   const [clientSign,setClientSign]=useState<string>("");
   const [contractorSign,setContractorSign]=useState<string>("");
+  // FIX 1 - Total Lock: Ek baar Save / PDF ke baad BOQ lock ho jayega, slider se Total nahi badlega jab tak New Quote na dabaye
+  const [isLocked,setIsLocked]=useState(false);
   const editedIds = useRef<Set<string>>(new Set());
   const cityRate = getRate(geo, geoState);
   const plotNum = parseInt(plot)||0;
@@ -284,6 +317,7 @@ export default function Page(){
   const storeysNum = parseInt(storeys)||1;
   const filteredCities = geo.trim() ? CITIES.filter(c=>c.toLowerCase().includes(geo.toLowerCase().trim())).sort((a,b)=>a.toLowerCase().indexOf(geo.toLowerCase().trim()) - b.toLowerCase().indexOf(geo.toLowerCase().trim())) : CITIES;
   const rebuildBOQ = (preserve:boolean=true)=>{
+    if(isLocked) return; // FIX - Locked hai toh rebuild mat karo
     const fresh = BASE_MATS(built115, cityRate, bhk, storeysNum, pkgRate, contract);
     if(preserve && mats.length>0){
       const map = new Map(mats.map(m=>[m.id,m]));
@@ -295,9 +329,7 @@ export default function Page(){
   const contMats = mats.filter(m=>!m.owner);
   const ownerCost = contract==="full" ? ownerMats.reduce((s,m)=>s+m.qty*m.rate,0) : 0;
   const contCost = contMats.reduce((s,m)=>s+m.qty*m.rate,0);
-  const labourRate = 0;
-  const labourCost = 0;
-  const subTotal = ownerCost + contCost;
+  const subTotal = ownerCost + contCost; // FIX 2 - Yehi BOQ Sum hai
   const profit = Math.round(subTotal*(profitP/100));
   const baseTotal = subTotal + profit;
   const cgst = gstOn ? Math.round(baseTotal*0.09) : 0;
@@ -312,7 +344,9 @@ export default function Page(){
   const list = view==="owner" ? ownerMats : view==="contractor" ? contMats : mats;
   const pay30 = Math.round(displayTotal*0.30);
   const pay10 = displayTotal - (pay30*3);
+  const boqBreakup = `BOQ Rs.${inr(subTotal)} + Profit ${profitP}% Rs.${inr(profit)} = Total Rs.${inr(baseTotal)}`;
   const changeCompany = (matId:string, idx:number)=>{
+    if(isLocked) return alert("Quote Locked hai - Naya Quote banao");
     const nm = mats.map(m=>{ if(m.id!==matId) return m; const newRate = Math.round(m.baseRate * m.mult[idx]); editedIds.current.add(m.id); return {...m, company: m.companies[idx], rate: newRate}; });
     setMats(nm);
   };
@@ -320,19 +354,20 @@ export default function Page(){
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const stRaw=d.address?.state||geoState; const st=getStateForCity(c, stRaw); setGeo(c); setGeoState(st); setPkgOverride({}); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
   const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
-  const saveEst = ()=>{ if(!validate()) return; const e={name:cname||"No Name",geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} alert(`Estimate Save - Quote ${quoteNo}`); const nq=makeQuote(); setQuoteNo(nq); try{ localStorage.setItem("aw_quote",nq); }catch(e){} };
-  const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${cname||geo} - ${geo} - ${bhk} BHK - Built ${built115} Sqft - ${contract} - Total Rs.${inr(displayTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(displayTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
+  // FIX 1 + 3 - Save pe Quote No. change NAHI hoga, History me sahi Total jayega
+  const saveEst = ()=>{ if(!validate()) return; const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; const nh=[e,...history].slice(0,10); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} setIsLocked(true); alert(`Estimate Save - Quote ${quoteNo} - Locked`); };
+  const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${capName(cname)||geo} - ${geo} - ${bhk} BHK - Built ${built115} Sqft - ${contract} - Total Rs.${inr(displayTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(displayTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
   const pdf = async ()=>{
     if(!clientSign || !contractorSign){ alert(lang==="hi" ? "Pehle Client aur Contractor dono sign karo, tabhi PDF banegi" : "Please add both Client and Contractor signatures before downloading PDF"); return; }
     if(!validate()) return;
     if(!compPhone.trim() || !compAddress.trim() || !compWebsite.trim() || !compGstin.trim()){ alert(lang==="hi"?"Pehle upar Company Phone / Address / Website / GSTIN bhare, tabhi PDF banegi":"Please fill Company Phone, Address, Website and GSTIN above before PDF"); return; }
     const doc=new jsPDF();
-    const isHi = false;
     const DISPLAY_PHONE = compPhone;
     const DISPLAY_EMAIL = compEmail || compPhone;
     const DISPLAY_ADDRESS = compAddress;
     const DISPLAY_WEBSITE = compWebsite;
     const DISPLAY_GSTIN = compGstin;
+    const clientNameFixed = capName(cname);
     doc.setFillColor(0,0,0); doc.rect(0,0,210,42,"F");
     if(compLogo){ try{ doc.addImage(compLogo, "JPEG", 14, 4, 18, 18); }catch(e){} }
     doc.setTextColor(212,175,55); doc.setFontSize(20); doc.setFont("helvetica","bold");
@@ -349,7 +384,7 @@ export default function Page(){
     doc.setFontSize(10); doc.setFont("helvetica","bold");
     const quoteLines = doc.splitTextToSize(`Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 182);
     doc.text(quoteLines,14,48);
-    const clientLines = doc.splitTextToSize(`Client: ${cname||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 182);
+    const clientLines = doc.splitTextToSize(`Client: ${clientNameFixed||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 182);
     doc.text(clientLines,14,55);
     const plotLines = doc.splitTextToSize(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt)`, 182);
     doc.text(plotLines,14,62);
@@ -361,11 +396,14 @@ export default function Page(){
     doc.setFontSize(9); doc.setFont("helvetica","normal");
     const gstLine2 = doc.splitTextToSize(gstOn ? `(With GST - CGST Rs.${inr(cgst)} + SGST Rs.${inr(sgst)})` : `(+ 18% GST Extra = Rs. ${inr(totalWithGstExtra)})`, 182);
     doc.text(gstLine2,14,85);
+    // FIX 2 - PDF me bhi BOQ Breakup saaf dikhega
+    const boqPdfLines = doc.splitTextToSize(`BOQ Rs.${inr(subTotal)} + Profit ${profitP}% Rs.${inr(profit)} = Total Rs.${inr(baseTotal)}`, 182);
+    doc.text(boqPdfLines,14,91);
     const wordsLines = doc.splitTextToSize(`In Words: ${inWords(displayTotal)}`, 182);
-    doc.text(wordsLines,14,91);
+    doc.text(wordsLines,14,97);
     const effLines = doc.splitTextToSize(`Effective Rate: Rs.${effRate} / sqft | 1 Year Warranty | Price Lock 30 Days`, 182);
-    doc.text(effLines,14,97);
-    let y=105;
+    doc.text(effLines,14,103);
+    let y=111;
     if(sitePhoto){ try{ doc.addImage(sitePhoto, "JPEG", 14, y, 60, 35); doc.text("Site Photo", 80, y+10); y+=40; }catch(e){} }
     const drawTableHeader = (yy:number)=>{
       doc.setFillColor(212,175,55); doc.rect(14, yy, 182, 7, "F");
@@ -391,16 +429,17 @@ export default function Page(){
       y+=rowH;
     });
     y+=4; doc.setFont("helvetica","bold"); doc.setFontSize(9);
-    const totalLines = doc.splitTextToSize(`Grand Total = Rs.${inr(displayTotal)}`,182);
+    // FIX 2 - PDF Total me bhi BOQ Breakup
+    const totalLines = doc.splitTextToSize(`BOQ Rs.${inr(subTotal)} + Profit Rs.${inr(profit)} = Grand Total Rs.${inr(displayTotal)}`,182);
     doc.text(totalLines,14,y); y+= totalLines.length*5+2;
     const payLine = `Payment: 30% On Plinth Rs.${inr(pay30)} | 30% On Slab Rs.${inr(pay30)} | 30% On Plaster Rs.${inr(pay30)} | 10% Handover Rs.${inr(pay10)}`;
     const payLines = doc.splitTextToSize(payLine, 182); doc.text(payLines,14,y); y += payLines.length*5+2;
     doc.setFont("helvetica","normal");
-    const notIncLines = doc.splitTextToSize("NOT Included: Govt Approval, Borewell, Compound Wall, Furniture, Interior", 182); doc.text(notIncLines,14,y); y+=notIncLines.length*5+2;
+    const notIncLines = doc.splitTextToSize(getNotInc(contract,"en"), 182); doc.text(notIncLines,14,y); y+=notIncLines.length*5+2;
     doc.setFont("helvetica","bold"); doc.setFontSize(10);
     const termsTitleLines = doc.splitTextToSize("TERMS & CONDITIONS:", 182); doc.text(termsTitleLines,14,y); y+=6;
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
-    const pdfTerms = ["Validity: This estimate is valid for 30 days from date of issue.","Scope: Only BOQ items included. Extra work charged separately.","Approvals: Govt approvals, map passing, NOC are client's responsibility.","Site Facilities: Client to provide site access, water, electricity & storage.","Price Variation: If material prices rise above 5%, difference adjusted.","Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover. Delay beyond 7 days may pause work.","Timeline: Approximate, subject to weather & timely payments.","Warranty: 1 Year Structural Warranty from handover.","Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.","Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India."];
+    const pdfTerms = getTerms(contract,"en");
     pdfTerms.forEach((term,idx)=>{ const lines = doc.splitTextToSize(`${idx+1}. ${term}`,182); if(y + lines.length*4.5 > 265){doc.addPage(); y=14;} doc.text(lines,14,y); y+=lines.length*4.5+1; });
     y+=8; doc.setFontSize(10);
     if(y+40>280){ doc.addPage(); y=14; }
@@ -412,17 +451,19 @@ export default function Page(){
     if(clientSign){ try{ doc.addImage(clientSign, "PNG", 14, y, 45, 18); }catch(e){} }
     if(contractorSign){ try{ doc.addImage(contractorSign, "PNG", 85, y, 45, 18); }catch(e){} }
     y+=22;
-    const signLines = doc.splitTextToSize(`Signature: Client ${cname||""}`, 182);
+    const signLines = doc.splitTextToSize(`Signature: Client ${clientNameFixed||""}`, 182);
     doc.text(signLines,14,y); y+=6;
     const signLines2 = doc.splitTextToSize(`Contractor __________  Stamp: __________  Date: ${today}`, 182);
     doc.text(signLines2,14,y);
     const totalPages = doc.getNumberOfPages();
     for(let p=1;p<=totalPages;p++){ doc.setPage(p); doc.setFontSize(8); doc.setTextColor(100,100,100); const footerLines = doc.splitTextToSize(`Page ${p} of ${totalPages} | ${quoteNo} | Total Rs.${inr(displayTotal)} | ${COMPANY.name}`, 182); doc.text(footerLines, 14, 290);
-      doc.setTextColor(248,248,248); doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.text(COMPANY.name, 30, 150, { angle: 30 } as any); doc.setTextColor(100,100,100); doc.setFontSize(8);
+      // FIX 4 - Watermark bahut halka, table ke peeche
+      doc.setTextColor(240,240,240); doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.text(COMPANY.name, 30, 150, { angle: 30 } as any); doc.setTextColor(100,100,100); doc.setFontSize(8);
     }
+    setIsLocked(true);
     doc.save(`${COMPANY.name}_${quoteNo}_${built115}.pdf`);
   };
-  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); setCname(""); setCphone(""); setPlot("2000"); setCov(64); setStoreys("1"); setBhk(2); setPhase(1); setSitePhoto(""); setClientSign(""); setContractorSign(""); try{ localStorage.setItem("aw_quote",q); }catch(e){} alert(`Naya Quote: ${q}`); };
+  const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); setCname(""); setCphone(""); setPlot("2000"); setCov(64); setStoreys("1"); setBhk(2); setPhase(1); setSitePhoto(""); setClientSign(""); setContractorSign(""); setIsLocked(false); editedIds.current.clear(); try{ localStorage.setItem("aw_quote",q); }catch(e){} alert(`Naya Quote: ${q}`); };
   useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
   useEffect(()=>{ rebuildBOQ(false); },[]);
   useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgOverride, geoState]);
@@ -453,7 +494,7 @@ export default function Page(){
             <button onClick={()=>setLang("hi")} className={`px-4 py-1.5 rounded-full text-[12px] font-bold ${lang==="hi"?"bg-[#d4af37] text-black":"text-white/70"}`}>हिंदी</button>
           </div>
         </div>
-        <div className="text-[11px] mt-1 break-words leading-relaxed">Quote: {quoteNo} | Date: {today} | {t.valid}: {validTill} (30 Days) <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">{t.newQuote}</button></div>
+        <div className="text-[11px] mt-1 break-words leading-relaxed">Quote: {quoteNo} | Date: {today} | {t.valid}: {validTill} (30 Days) {isLocked && <span className="bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">🔒 LOCKED</span>} <button onClick={newQuote} className="ml-1 px-2 py-0.5 rounded-full bg-[#d4af37] text-black font-bold">{t.newQuote}</button></div>
       </div>
       <div className="flex justify-between items-center bg-[#0f141f] border rounded-2xl px-4 py-2.5 mb-2 min-w-0 flex-wrap gap-2">
         <b className="break-words">{t.appTitle}</b>
@@ -480,7 +521,7 @@ export default function Page(){
         )}
         <div className="text-[12px] text-cyan-300 mt-1 break-words">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic break-words">{inWords(displayTotal)}</div>
-        <div className="text-[11px] text-[#d4af37] break-words">{t.boqOk}</div>
+        <div className="text-[11px] text-[#d4af37] break-words">{boqBreakup}</div>
       </div>
       {phase===1 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
         <h2 className="font-black text-[#d4af37] mb-3 break-words">{t.page1}</h2>
@@ -526,9 +567,9 @@ export default function Page(){
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
         </div>
         <div className="bg-[#d4af37]/10 border rounded-[18px] p-3 mb-3 min-w-0">
-          <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} - Only For You, Not For Client PDF</div>
-          <input type="range" min={5} max={50} value={profitP} onChange={e=>setProfitP(parseInt(e.target.value))} className="w-full accent-[#d4af37]" />
-          <button onClick={()=>setGstOn(!gstOn)} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black break-words">{gstOn?t.gstOnLabel:t.gstOffLabel}</button>
+          <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} - Only For You, Not For Client PDF {isLocked && " - LOCKED"}</div>
+          <input type="range" min={5} max={50} value={profitP} disabled={isLocked} onChange={e=>setProfitP(parseInt(e.target.value))} className="w-full accent-[#d4af37]" />
+          <button onClick={()=>setGstOn(!gstOn)} disabled={isLocked} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black break-words">{gstOn?t.gstOnLabel:t.gstOffLabel}</button>
           <div className="grid grid-cols-3 gap-2 mt-3 min-w-0">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative min-w-0 ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3 min-w-0"><div className="text-[12px] capitalize break-words">{k}</div><div className="font-black break-words">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>
         </div>
         <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3 break-words">⚠️ {t.approx} {validTill} (30 Days).</div>
@@ -539,15 +580,15 @@ export default function Page(){
         <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1 break-words"><span>Client Total = Rs.{inr(displayTotal)} {gstOn?`+ GST ${inr(gstAmt)} Included`:"+ " + t.gstExtra} | {contract}</span><span>{today} | {t.valid}: {validTill}</span>{view==="contractor" && <span>Internal: Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} - Only For You</span>}</div>
         <div className="flex flex-col gap-2">{list.map((m,i)=>(<div key={m.id} className="border-b border-white/10 pb-2 flex justify-between gap-2 min-w-0"><div className="min-w-0 flex-1"><div className="break-words text-[13px]">{i+1}. {m.name}</div><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-2 py-1 text-[11px] mt-1 max-w-full"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><div className="text-[11px] text-white/60 break-words mt-1">{m.displayFactor}</div><div className="text-[11px] text-white/60 break-words">{m.owner?"Owner":"Contractor"} | Rate: Rs.{m.rate}</div></div><div className="text-right shrink-0"><div className="break-words text-[13px]">{m.qty} {m.unit}</div><div className="text-[12px] break-words">x Rs.{m.rate}</div><div className="font-bold break-words">= Rs.{inr(m.qty*m.rate)}</div><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="mt-1 text-[11px] bg-[#d4af37] text-black px-3 py-1 rounded-full font-black whitespace-nowrap">Edit</button></div></div>))}</div>
         {sitePhoto && <div className="mt-3"><b className="text-[12px] break-words">{t.sitePhotoLabel}</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
-        <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px] break-words"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1 break-words"><span>{t.pay1} - Rs.{inr(pay30)}</span><span>{t.pay2} - Rs.{inr(pay30)}</span><span>{t.pay3} - Rs.{inr(pay30)}</span><span>{t.pay4} - Rs.{inr(pay10)}</span></div><div className="flex flex-col gap-0.5 mt-2 break-words"><b className="text-[#d4af37] break-words">{t.timeline}: {timeline}</b><b className="text-[#d4af37] break-words">{t.valid}: {validTill} (30 Days)</b></div><div className="mt-1 break-words">{t.notInc}</div></div>
+        <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px] break-words"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1 break-words"><span>{t.pay1} - Rs.{inr(pay30)}</span><span>{t.pay2} - Rs.{inr(pay30)}</span><span>{t.pay3} - Rs.{inr(pay30)}</span><span>{t.pay4} - Rs.{inr(pay10)}</span></div><div className="flex flex-col gap-0.5 mt-2 break-words"><b className="text-[#d4af37] break-words">{t.timeline}: {timeline}</b><b className="text-[#d4af37] break-words">{t.valid}: {validTill} (30 Days)</b></div><div className="mt-1 break-words">{getNotInc(contract,lang)}</div></div>
         <div className="font-black text-[18px] mt-3 break-words">{t.final}: Rs.{inr(displayTotal)} | Effective Rs.{effRate}/sqft</div>
         <div className="text-[11px] italic mt-1 break-words">{inWords(displayTotal)}</div>
-        <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed break-words"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{t.terms.map((term,idx)=><div key={idx} className="break-words">{idx+1}. {term}</div>)}</div>
+        <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed break-words"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{getTerms(contract,lang).map((term,idx)=><div key={idx} className="break-words">{idx+1}. {term}</div>)}</div>
         <div className="grid grid-cols-2 gap-3 mt-4 min-w-0">
           <SignatureBox label={t.clientSign + " Signature"} value={clientSign} onChange={setClientSign} hint={t.signHint} clearLabel={t.clear} />
           <SignatureBox label={t.contractorSign + " Signature"} value={contractorSign} onChange={setContractorSign} hint={t.signHint} clearLabel={t.clear} />
         </div>
-        <div className="text-center text-[11px] mt-2 text-white/60 break-words">{t.clientSign}: {cname || "__________"} | Date: {today} | {t.stamp}: {t.companySeal}</div>
+        <div className="text-center text-[11px] mt-2 text-white/60 break-words">{t.clientSign}: {capName(cname) || "__________"} | Date: {today} | {t.stamp}: {t.companySeal}</div>
         <div className="text-center mt-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://wa.me/91${compPhone || "9823000000"}`} alt="WhatsApp QR" className="mx-auto border border-white/20 p-1 bg-white" /><div className="text-[11px] mt-1 break-words">{t.scan}</div></div>
         <div className="flex gap-2 mt-3"><button onClick={wa} className="flex-1 bg-green-600 rounded-full py-3 font-bold break-words">{t.whatsapp}</button><button onClick={pdf} className="flex-1 bg-blue-600 rounded-full py-3 font-bold break-words">{t.download}</button></div>
         <div className="flex gap-2 mt-2"><button onClick={saveEst} className="flex-1 bg-white/10 rounded-full py-3 break-words">💾 {t.save}</button><button onClick={newQuote} className="flex-1 bg-[#d4af37] text-black rounded-full py-3 font-bold break-words">🆕 {t.newQuote}</button></div>
