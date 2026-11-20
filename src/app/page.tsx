@@ -11,6 +11,7 @@ function normalizeContract(c:string): ContractType {
   return "centering";
 }
 function capName(s:string){ return s.trim().split(/\s+/).map(w=> w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" "); }
+function isEmailLike(s:string){ return s.includes("@"); }
 function contractLabel(c:ContractType, lang:Lang){
   if(lang==="hi"){
     if(c==="full") return "मटीरियल सहित - टर्नकी";
@@ -89,7 +90,7 @@ const T = {
     stateLabel: "Auto From GPS",
     sitePhotoLabel: "Site Photo Upload - Will also go in PDF",
     photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
-    approx: "Estimate valid for 30 days. Valid till",
+    approx: "Estimate valid till",
     clientSign: "Client", contractorSign: "Contractor", stamp: "Stamp", signDate: "Signature & Date", companySeal: "Company Seal",
     signHint: "Sign here with finger only - Photo not allowed", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
@@ -112,7 +113,7 @@ const T = {
     stateLabel: "GPS se Auto Aayega",
     sitePhotoLabel: "Site Photo Upload - PDF me bhi jayegi",
     photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
-    approx: "Estimate 30 din tak valid hai. Valid till",
+    approx: "Estimate valid till",
     clientSign: "ग्राहक", contractorSign: "ठेकेदार", stamp: "मुहर", signDate: "हस्ताक्षर व तारीख", companySeal: "कंपनी की मुहर",
     signHint: "Yahan sirf ungli se sign karo - Photo mat daalo", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
@@ -311,6 +312,7 @@ export default function Page(){
   const [validTill,setValidTill]=useState("");
   const [compPhone,setCompPhone]=useState("");
   const [compAddress,setCompAddress]=useState("");
+  const [compEmail,setCompEmail]=useState("");
   const [compUpi,setCompUpi]=useState("");
   const [discount,setDiscount]=useState(0);
   const [advance,setAdvance]=useState(0);
@@ -373,7 +375,7 @@ export default function Page(){
   const savePkg = ()=>{ const r=parseInt(eRate); if(!r||r<=0) return alert("Sahi Rate dalo"); setPkgOverride(p=>({...p,[editPkg as string]:r})); setEditPkg(null); };
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const stRaw=d.address?.state||geoState; const st=getStateForCity(c, stRaw); setGeo(c); setGeoState(st); setPkgOverride({}); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
-  const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
+  const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } setCname(capName(cname)); if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
   const saveEst = ()=>{ if(!validate()) return; const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; const nh=[e,...history].slice(0,20); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} setIsLocked(true); alert(`Estimate Save - Quote ${quoteNo} - Locked`); };
   const clearHistory = ()=>{ if(!confirm("Saari History delete karni hai?")) return; setHistory([]); try{ localStorage.removeItem("aw_history"); }catch(e){} };
   const exportBackup = ()=>{ const data = JSON.stringify({history, exportedAt: new Date().toISOString()}, null, 2); const blob = new Blob([data], {type:"application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href=url; a.download="abuildwise-backup.json"; a.click(); URL.revokeObjectURL(url); };
@@ -386,6 +388,8 @@ export default function Page(){
     const doc=new jsPDF();
     const DISPLAY_PHONE = compPhone;
     const DISPLAY_ADDRESS = compAddress;
+    const DISPLAY_EMAIL = compEmail || (isEmailLike(compAddress) ? compAddress : "");
+    const DISPLAY_ADDRESS_FINAL = isEmailLike(compAddress) && !compEmail ? "Seoni, Madhya Pradesh" : compAddress;
     const clientNameFixed = capName(cname);
     doc.setFillColor(0,0,0); doc.rect(0,0,210,52,"F");
     if(compLogo){ try{ doc.addImage(compLogo, "JPEG", 14, 5, 18, 18); }catch(e){} }
@@ -395,33 +399,34 @@ export default function Page(){
     doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","normal");
     const contactLines = doc.splitTextToSize(`Phone: ${DISPLAY_PHONE}`, 170);
     doc.text(contactLines, compLogo ? 36 : 14, 26);
-    const addrLines = doc.splitTextToSize(`Address: ${DISPLAY_ADDRESS}`, 170);
+    const addrLines = doc.splitTextToSize(`Address: ${DISPLAY_ADDRESS_FINAL}`, 170);
     doc.text(addrLines, compLogo ? 36 : 14, 34);
-    const upiHeaderLines = compUpi ? doc.splitTextToSize(`UPI: ${compUpi}`, 170) : [];
-    if(upiHeaderLines.length) doc.text(upiHeaderLines, compLogo ? 36 : 14, 42);
+    const emailLines = DISPLAY_EMAIL ? doc.splitTextToSize(`Email: ${DISPLAY_EMAIL}`, 170) : [];
+    if(emailLines.length) doc.text(emailLines, compLogo ? 36 : 14, 42);
+    else if(compUpi){ const uLines = doc.splitTextToSize(`UPI: ${compUpi}`, 170); doc.text(uLines, compLogo ? 36 : 14, 42); }
     doc.setTextColor(0,0,0);
     doc.setFontSize(10); doc.setFont("helvetica","bold");
     let y = 58;
     const writeWrapped = (text:string, size:number, bold:boolean, gap:number)=>{
       doc.setFontSize(size); doc.setFont("helvetica", bold?"bold":"normal");
       const lines = doc.splitTextToSize(text, 182);
-      if(y + lines.length*4.5 > 272){ doc.addPage(); y=16; }
-      doc.text(lines,14,y); y += lines.length*4.5 + gap;
+      if(y + lines.length*4.2 > 272){ doc.addPage(); y=16; }
+      doc.text(lines,14,y); y += lines.length*4.2 + gap;
     };
-    writeWrapped(`Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 10, true, 1);
-    writeWrapped(`Client: ${clientNameFixed||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 10, true, 1);
-    writeWrapped(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt)`, 10, true, 1);
-    if(contract==="full") writeWrapped(`Package: ${pkg} Rs.${pkgRate} | ${bhk} BHK | ${getLabel(storeys)} | Mode: ${contractLabel(contract,"en")} | Timeline: ${timeline}`, 10, true, 2);
-    else writeWrapped(`Mode: ${contractLabel(contract,"en")} | Built-up ${built115} Sqft | Timeline: ${timeline}`, 10, true, 2);
-    writeWrapped(`Grand Total: Rs. ${inr(finalTotal)}`, 11, true, 1);
-    if(gstOn) writeWrapped(`(With GST - CGST Rs.${inr(cgst)} + SGST Rs.${inr(sgst)})`, 9, false, 1);
-    else writeWrapped(`(+ 18% GST Extra = Rs. ${inr(totalWithGstExtra)})`, 9, false, 1);
-    writeWrapped(`In Words: ${inWords(displayTotal)}`, 9, false, 1);
-    if(discountAmt>0) writeWrapped(`Discount: Rs.${inr(discountAmt)}`, 9, false, 1);
-    if(advance>0) writeWrapped(`Advance Received: Rs.${inr(advance)} | Balance: Rs.${inr(Math.max(0, displayTotal-advance))}`, 9, false, 1);
-    if(compUpi) writeWrapped(`Advance Payment UPI: ${compUpi}`, 9, false, 1);
-    if(contract==="full") writeWrapped(`Effective Rate: Rs.${effRate} / sqft | 1 Year Warranty | Price Lock 30 Days`, 9, false, 2);
-    else writeWrapped(`Effective Rate: Rs.${effRate} / sqft | Price Lock 30 Days`, 9, false, 2);
+    writeWrapped(`Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 10, true, 0.5);
+    writeWrapped(`Client: ${clientNameFixed||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 10, true, 0.5);
+    writeWrapped(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt)`, 10, true, 0.5);
+    if(contract==="full") writeWrapped(`Package: ${pkg} Rs.${pkgRate} | ${bhk} BHK | ${getLabel(storeys)} | Mode: ${contractLabel(contract,"en")} | Timeline: ${timeline}`, 10, true, 1);
+    else writeWrapped(`Mode: ${contractLabel(contract,"en")} | Built-up ${built115} Sqft | Timeline: ${timeline}`, 10, true, 1);
+    writeWrapped(`Grand Total: Rs. ${inr(finalTotal)}`, 11, true, 0.5);
+    if(gstOn) writeWrapped(`(With GST - CGST Rs.${inr(cgst)} + SGST Rs.${inr(sgst)})`, 9, false, 0.5);
+    else writeWrapped(`(+ 18% GST Extra = Rs. ${inr(totalWithGstExtra)})`, 9, false, 0.5);
+    writeWrapped(`In Words: ${inWords(displayTotal)}`, 9, false, 0.5);
+    if(discountAmt>0) writeWrapped(`Discount: Rs.${inr(discountAmt)}`, 9, false, 0.5);
+    if(advance>0) writeWrapped(`Advance Received: Rs.${inr(advance)} | Balance: Rs.${inr(Math.max(0, displayTotal-advance))}`, 9, false, 0.5);
+    if(compUpi) writeWrapped(`Advance Payment UPI: ${compUpi}`, 9, false, 0.5);
+    if(contract==="full") writeWrapped(`Effective Rate: Rs.${effRate} / sqft | 1 Year Warranty | Price Lock 30 Days`, 9, false, 1);
+    else writeWrapped(`Effective Rate: Rs.${effRate} / sqft | Price Lock 30 Days`, 9, false, 1);
     if(sitePhoto){ try{ if(y+40>270){ doc.addPage(); y=14; } doc.addImage(sitePhoto, "JPEG", 14, y, 60, 35); doc.text("Site Photo", 80, y+10); y+=40; }catch(e){} }
     const drawTableHeader = (yy:number)=>{
       doc.setFillColor(212,175,55); doc.rect(14, yy, 182, 7, "F");
@@ -435,7 +440,7 @@ export default function Page(){
     mats.forEach((m,i)=>{
       const fullName = `${m.name} - ${m.company}`;
       const nameLines = doc.splitTextToSize(fullName, 82);
-      const rowH = Math.max(6, nameLines.length * 4.5 + 2);
+      const rowH = Math.max(5.5, nameLines.length * 4 + 1.5);
       if(y + rowH > 265){ doc.addPage(); y=14; y = drawTableHeader(y); doc.setFont("helvetica","normal"); doc.setFontSize(8); }
       doc.text(`${i+1}.`,15,y+4);
       doc.text(nameLines,24,y+4);
@@ -447,28 +452,28 @@ export default function Page(){
       doc.text(amtLines,165,y+4);
       y+=rowH;
     });
-    y+=3;
-    writeWrapped(`Grand Total Rs.${inr(displayTotal)}`, 9, true, 1);
+    y+=2;
+    writeWrapped(`Grand Total Rs.${inr(displayTotal)}`, 9, true, 0.5);
     const payLinesArr = getPaymentLines(contract, displayTotal, lang);
     payLinesArr.forEach(l=> writeWrapped(`Payment: ${l}`, 9, false, 0));
     y+=1;
-    writeWrapped(getNotInc(contract,lang), 9, false, 1);
-    writeWrapped(lang==="hi" ? "नियम व शर्तें:" : "TERMS & CONDITIONS:", 10, true, 1);
-    doc.setFont("helvetica","normal"); doc.setFontSize(8);
+    writeWrapped(getNotInc(contract,lang), 9, false, 0.5);
+    writeWrapped(lang==="hi" ? "नियम व शर्तें:" : "TERMS & CONDITIONS:", 10, true, 0.5);
+    doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
     const pdfTerms = getTerms(contract,lang);
-    pdfTerms.forEach((term,idx)=>{ const lines = doc.splitTextToSize(`${idx+1}. ${term}`,182); if(y + lines.length*4.2 > 265){doc.addPage(); y=14;} doc.text(lines,14,y); y+=lines.length*4.2+0.8; });
-    y+=4;
-    if(y+48>280){ doc.addPage(); y=14; }
+    pdfTerms.forEach((term,idx)=>{ const lines = doc.splitTextToSize(`${idx+1}. ${term}`,182); if(y + lines.length*3.8 > 265){doc.addPage(); y=14;} doc.text(lines,14,y); y+=lines.length*3.8+0.5; });
+    y+=2;
+    if(y+42>280){ doc.addPage(); y=14; }
     try{
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://wa.me/91${compPhone || "9823000000"}`;
       const qrImg = await fetch(qrUrl).then(r=>r.blob()).then(b=>new Promise<string>((res)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result)); fr.readAsDataURL(b); })).catch(()=> "");
-      if(qrImg) doc.addImage(qrImg, "PNG", 150, y, 30, 30);
+      if(qrImg) doc.addImage(qrImg, "PNG", 150, y, 24, 24);
     }catch(e){}
-    if(clientSign){ try{ doc.addImage(clientSign, "PNG", 14, y, 45, 18); }catch(e){} }
-    if(contractorSign){ try{ doc.addImage(contractorSign, "PNG", 85, y, 45, 18); }catch(e){} }
-    y+=22;
-    writeWrapped(`Signature: Client ${clientNameFixed||""}`, 10, false, 1);
-    writeWrapped(`Contractor __________  Stamp: __________  Date: ${today}`, 10, false, 1);
+    if(clientSign){ try{ doc.addImage(clientSign, "PNG", 14, y, 45, 14); }catch(e){} }
+    if(contractorSign){ try{ doc.addImage(contractorSign, "PNG", 85, y, 45, 14); }catch(e){} }
+    y+=18;
+    writeWrapped(`Signature: Client ${clientNameFixed||""}`, 10, false, 0.5);
+    writeWrapped(`Contractor __________  Stamp: __________  Date: ${today}`, 10, false, 0.5);
     const totalPages = doc.getNumberOfPages();
     for(let p=1;p<=totalPages;p++){ doc.setPage(p); doc.setFontSize(8); doc.setTextColor(100,100,100); const footerLines = doc.splitTextToSize(`Page ${p} of ${totalPages} | ${quoteNo} | Total Rs.${inr(displayTotal)} | ${COMPANY.name}`, 182); doc.text(footerLines, 14, 290); }
     const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo};
@@ -482,11 +487,11 @@ export default function Page(){
   useEffect(()=>{ rebuildBOQ(false); },[]);
   useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgOverride, geoState]);
   useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history")||"[]"); setHistory(Array.isArray(h)?h:[]); const d=JSON.parse(localStorage.getItem("aw_draft")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
-    const c=JSON.parse(localStorage.getItem("aw_company")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.address) setCompAddress(c.address); if(c.upi) setCompUpi(c.upi); if(c.logo) setCompLogo(c.logo);
+    const c=JSON.parse(localStorage.getItem("aw_company")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.address) setCompAddress(c.address); if(c.email) setCompEmail(c.email); if(c.upi) setCompUpi(c.upi); if(c.logo) setCompLogo(c.logo);
     const s=JSON.parse(localStorage.getItem("aw_sign")||"{}"); if(s.client) setClientSign(s.client); if(s.contractor) setContractorSign(s.contractor);
   }catch(e){} },[]);
   useEffect(()=>{ try{ localStorage.setItem("aw_draft", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
-  useEffect(()=>{ try{ localStorage.setItem("aw_company", JSON.stringify({phone:compPhone,address:compAddress,upi:compUpi,logo:compLogo})); }catch(e){} },[compPhone,compAddress,compUpi,compLogo]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_company", JSON.stringify({phone:compPhone,address:compAddress,email:compEmail,upi:compUpi,logo:compLogo})); }catch(e){} },[compPhone,compAddress,compEmail,compUpi,compLogo]);
   useEffect(()=>{ try{ localStorage.setItem("aw_sign", JSON.stringify({client:clientSign,contractor:contractorSign})); }catch(e){} },[clientSign,contractorSign]);
   const filteredHistory = history.filter(h=> (h.name||"").toLowerCase().includes(historySearch.toLowerCase()) || (h.quoteNo||"").toLowerCase().includes(historySearch.toLowerCase()));
   return (
@@ -498,8 +503,9 @@ export default function Page(){
         <label className="block mt-2 text-[11px] text-white/60 cursor-pointer break-words">📷 Company Logo Upload - PDF me bhi jayega<input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setCompLogo(String(r.result)); r.readAsDataURL(f); } }} /></label>
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-left min-w-0">
           <input value={compPhone} onChange={e=>setCompPhone(e.target.value)} placeholder="Phone: Apna number likho *" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
-          <input value={compAddress} onChange={e=>setCompAddress(e.target.value)} placeholder="Address: Apna address likho *" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
-          <input value={compUpi} onChange={e=>setCompUpi(e.target.value)} placeholder="UPI ID: 8432722013@paytm - Advance ke liye" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 col-span-2 min-w-0 break-words" />
+          <input value={compAddress} onChange={e=>setCompAddress(e.target.value)} placeholder="Address: Gaon / City - Email nahi *" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compEmail} onChange={e=>setCompEmail(e.target.value)} placeholder="Email: akshaypatle9425@gmail.com - Optional" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compUpi} onChange={e=>setCompUpi(e.target.value)} placeholder="UPI ID: 8432722013@paytm - Advance ke liye" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
         </div>
         <div className="flex justify-center mt-2">
           <div className="flex bg-black rounded-full p-1 gap-1 border border-white/20">
@@ -556,7 +562,7 @@ export default function Page(){
         <select value={storeys} onChange={e=>setStoreys(e.target.value)} className="w-full bg-black border rounded-full px-3 py-3.5 mb-1 mt-1 min-w-0">{Array.from({length:50},(_,i)=>i+1).map(n=><option key={n} value={n}>{getLabel(String(n))}</option>)}</select>
         <div className="text-[12px] mb-3 break-words">Selected: {getLabel(storeys)} | {t.timeline}: {timeline} | Curing: {14+(storeysNum*7)} Days | Lift: {storeysNum>1?"Yes":"No"}</div>
         <div className="text-[11px] text-white/60 mb-1 break-words">Client Name / Phone</div>
-        <input value={cname} onChange={e=>setCname(e.target.value)} onBlur={()=>setCname(capName(cname))} placeholder={t.clientName} className="w-full bg-black/50 border rounded-full px-4 py-3 mb-2 min-w-0" />
+        <input value={cname} onChange={e=>setCname(e.target.value)} onBlur={()=>setCname(capName(cname))} placeholder={t.clientName} style={{textTransform:"capitalize"}} className="w-full bg-black/50 border rounded-full px-4 py-3 mb-2 min-w-0 capitalize" />
         <input value={cphone} onChange={e=>setCphone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder={t.clientPhone} maxLength={10} className="w-full bg-black/50 border rounded-full px-4 py-3 mb-1 min-w-0" />
         {cphone.length>=5 && <div className="text-[11px] text-white/60 mb-3 break-words">Client ko dikhega: {maskPhone(cphone)}</div>}
         <button onClick={()=>{if(validate()) setPhase(2)}} className="w-full bg-[#d4af37] text-black font-black py-4 rounded-full break-words">{t.nextLoc}</button>
@@ -582,8 +588,8 @@ export default function Page(){
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
         </div>
         <div className="bg-[#d4af37]/10 border rounded-[18px] p-3 mb-3 min-w-0">
-          {view==="contractor" && <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} {isLocked && " - LOCKED"}</div>}
-          {view!=="contractor" && <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">GST {gstOn?"ON - With GST":"OFF - GST Extra"} {isLocked && " - LOCKED"}</div>}
+          <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} - Only For You {isLocked && " - LOCKED"}</div>
+          <div className="text-[11px] text-white/60 mb-1 break-words">Profit Slider - Only For You, Client ko nahi dikhega</div>
           <input type="range" min={5} max={50} value={profitP} disabled={isLocked} onChange={e=>setProfitP(parseInt(e.target.value))} className="w-full accent-[#d4af37]" />
           <button onClick={()=>setGstOn(!gstOn)} disabled={isLocked} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black break-words">{gstOn?t.gstOnLabel:t.gstOffLabel}</button>
           <div className="grid grid-cols-2 gap-2 mt-3">
@@ -592,7 +598,7 @@ export default function Page(){
           </div>
           {contract==="full" && <div className="grid grid-cols-3 gap-2 mt-3 min-w-0">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative min-w-0 ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3 min-w-0"><div className="text-[12px] capitalize break-words">{k}</div><div className="font-black break-words">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>}
         </div>
-        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3 break-words">⚠️ {t.approx} {validTill} (30 Days).</div>
+        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3 break-words">⚠️ {t.approx} {validTill}.</div>
         <div className="flex gap-2"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 rounded-full py-3.5 break-words">{t.back}</button><button onClick={()=>{if(validate()) setPhase(3)}} className="flex-[2] bg-white text-black font-black py-3.5 rounded-full break-words">{t.nextFinal}</button></div>
       </div>}
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
