@@ -228,12 +228,24 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     ];
   }
   if(contract==="centering"){
+    const brickDays = Math.round(labourDaysFull*45/147);
+    const plasterDays = Math.round(labourDaysFull*40/147);
+    const steelDays = Math.round(labourDaysFull*20/147);
+    const flooringDays = labourDaysFull - brickDays - plasterDays - steelDays - centeringDays;
     return [
       mk("ply","Ply - Centering Rental", Math.round(built*0.90), 18*fCity, "ply", false, "Sqft", 0.90, "90% of Built-up - Rental, Not Purchase"),
       mk("batta","Batta - Sagwan Rental", Math.round(built*0.60), 12*fCity, "batta", false, "Rft", 0.60, "0.60 Rft / Sqft - Rental"),
       mk("jack","Jack Prop Rental", Math.round(built*0.08), 25*fCity, "jack", false, "Nos", 0.08, "0.08 Nos / Sqft - Rental"),
-      mk("mistri","Mistri", centeringDays, 750*fCity, "mistri", false, "Days", 0, "Centering Days - Mistri"),
-      mk("beldar","Beldar", centeringDays, 500*fCity, "beldar", false, "Days", 0, "Centering Days - Beldar"),
+      mk("mistri-brick","Brickwork - Mistri", brickDays, 750*fCity, "mistri", false, "Days", 0, "Brickwork - Mistri"),
+      mk("beldar-brick","Brickwork - Beldar", brickDays, 500*fCity, "beldar", false, "Days", 0, "Brickwork - Beldar"),
+      mk("mistri-plaster","Plaster - Mistri", plasterDays, 750*fCity, "mistri", false, "Days", 0, "Plaster - Mistri"),
+      mk("beldar-plaster","Plaster - Beldar", plasterDays, 500*fCity, "beldar", false, "Days", 0, "Plaster - Beldar"),
+      mk("mistri-steel","Steel Binding - Mistri", steelDays, 750*fCity, "mistri", false, "Days", 0, "Steel Binding - Mistri"),
+      mk("beldar-steel","Steel Binding - Beldar", steelDays, 500*fCity, "beldar", false, "Days", 0, "Steel Binding - Beldar"),
+      mk("mistri","Centering / Shuttering - Mistri", centeringDays, 750*fCity, "mistri", false, "Days", 0, "Centering Days - Mistri"),
+      mk("beldar","Centering / Shuttering - Beldar", centeringDays, 500*fCity, "beldar", false, "Days", 0, "Centering Days - Beldar"),
+      mk("mistri-floor","Flooring + Misc - Mistri", flooringDays, 750*fCity, "mistri", false, "Days", 0, "Flooring + Misc - Mistri"),
+      mk("beldar-floor","Flooring + Misc - Beldar", flooringDays, 500*fCity, "beldar", false, "Days", 0, "Flooring + Misc - Beldar"),
       mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
       mk("contingency","Contingency + Supervision", built, 10*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
     ];
@@ -251,18 +263,7 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("waterproofing","Waterproofing", Math.round(built*0.50), 45*fCity, "waterproofing", true, "Sqft", 0.50, "50% of Built-up - Bathroom + Terrace"),
     mk("doors","Doors", doorsQty, 12000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0, "Fixed Nos - BHK"),
     mk("windows","Windows - With Glass", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000)*fCity, "windows", true, "Nos", 0, "Fixed Nos - BHK - Glass Included"),
-    mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12, "0.12 Rft / Sqft - Balcony + Stair Only"),
-    mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75, "75% of Built-up"),
-    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom"),
-    mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
-    mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
-    mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
-    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
-    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
-  ];
-  return all.filter(m=> !(m.id==="lift" && m.qty===0));
-};
-function SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
+    mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12, "0.12 Rft / Sqft - Balfunction SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
   const canvasRef = useRef<any>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const getPos = (e:any, canvas:any) => { const rect = canvas.getBoundingClientRect(); const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY; return { x: (cx - rect.left) * (canvas.width / rect.width), y: (cy - rect.top) * (canvas.height / rect.height) }; };
@@ -362,7 +363,8 @@ export default function Page(){
   const gstExtraAmt = Math.round(baseTotal * 0.18);
   const totalWithGstExtra = baseTotal + gstExtraAmt;
   const displayTotal = finalTotal;
-  const effRate = Math.round(displayTotal/(built115||1));
+  const effRate = displayTotal/(built115||1);
+  const effRateDisplay = effRate.toFixed(2);
   const timeline = contract==="centering" ? "Centering 18 Days + Curing 21 Days = 39 Days" : contract==="labour" ? "Labour 147 Days" : contract==="item" ? "Item Work - As Per Items" : storeys==="1" ? "G+0 = 6 Months" : `G+${storeysNum-1} = ${6+(storeysNum-1)*3} Months`;
   const list = view==="owner" ? ownerMats : view==="contractor" ? contMats : mats;
   const pay30 = Math.round(displayTotal*0.30);
@@ -425,8 +427,8 @@ export default function Page(){
     if(discountAmt>0) writeWrapped(`Discount: Rs.${inr(discountAmt)}`, 9, false, 0.5);
     if(advance>0) writeWrapped(`Advance Received: Rs.${inr(advance)} | Balance: Rs.${inr(Math.max(0, displayTotal-advance))}`, 9, false, 0.5);
     if(compUpi) writeWrapped(`Advance Payment UPI: ${compUpi}`, 9, false, 0.5);
-    if(contract==="full") writeWrapped(`Effective Rate: Rs.${effRate} / sqft | 1 Year Warranty | Price Lock 30 Days`, 9, false, 1);
-    else writeWrapped(`Effective Rate: Rs.${effRate} / sqft | Price Lock 30 Days`, 9, false, 1);
+    if(contract==="full") writeWrapped(`Effective Rate: Rs.${effRateDisplay} / sqft | 1 Year Warranty | Price Lock 30 Days`, 9, false, 1);
+    else writeWrapped(`Effective Rate: Rs.${effRateDisplay} / sqft | Price Lock 30 Days`, 9, false, 1);
     if(sitePhoto){ try{ if(y+40>270){ doc.addPage(); y=14; } doc.addImage(sitePhoto, "JPEG", 14, y, 60, 35); doc.text("Site Photo", 80, y+10); y+=40; }catch(e){} }
     const drawTableHeader = (yy:number)=>{
       doc.setFillColor(212,175,55); doc.rect(14, yy, 182, 7, "F");
@@ -535,9 +537,9 @@ export default function Page(){
             <span className="font-bold">Total = Rs.{inr(baseTotal)}</span>
           </div>
         ) : (
-          <div className="text-[12px] break-words">Client Total - Rs.{inr(displayTotal)} | Effective Rs.{effRate}/sqft | {contractLabel(contract,"en")}</div>
+          <div className="text-[12px] break-words">Client Total - Rs.{inr(displayTotal)} | Effective Rs.{effRateDisplay}/sqft | {contractLabel(contract,"en")}</div>
         )}
-        <div className="text-[12px] text-cyan-300 mt-1 break-words">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRate}/sqft</div>
+        <div className="text-[12px] text-cyan-300 mt-1 break-words">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRateDisplay}/sqft</div>
         <div className="text-[11px] italic break-words">{inWords(displayTotal)}</div>
         {view==="contractor" && <div className="text-[11px] text-[#d4af37] break-words">BOQ Rs.{inr(subTotal)} + Profit {profitP}% Rs.{inr(profit)} = Total Rs.{inr(baseTotal)} - Only For You</div>}
         {discountAmt>0 && <div className="text-[12px] text-green-400 break-words">Discount: -Rs.{inr(discountAmt)}</div>}
@@ -607,7 +609,7 @@ export default function Page(){
         <div className="flex flex-col gap-2">{list.map((m,i)=>(<div key={m.id} className="border-b border-white/10 pb-2 flex justify-between gap-2 min-w-0"><div className="min-w-0 flex-1"><div className="break-words text-[13px]">{i+1}. {m.name}</div><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-2 py-1 text-[11px] mt-1 max-w-full"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><div className="text-[11px] text-white/60 break-words mt-1">{m.displayFactor}</div><div className="text-[11px] text-white/60 break-words">{m.owner?"Owner":"Contractor"} | Rate: Rs.{m.rate}</div></div><div className="text-right shrink-0"><div className="break-words text-[13px]">{m.qty} {m.unit}</div><div className="text-[12px] break-words">x Rs.{m.rate}</div><div className="font-bold break-words">= Rs.{inr(m.qty*m.rate)}</div><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="mt-1 text-[11px] bg-[#d4af37] text-black px-3 py-1 rounded-full font-black whitespace-nowrap">Edit</button></div></div>))}</div>
         {sitePhoto && <div className="mt-3"><b className="text-[12px] break-words">{t.sitePhotoLabel}</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
         <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px] break-words"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1 break-words">{getPaymentLines(contract, displayTotal, lang).map((l,idx)=><span key={idx}>{l}</span>)}</div><div className="flex flex-col gap-0.5 mt-2 break-words"><b className="text-[#d4af37] break-words">{t.timeline}: {timeline}</b><b className="text-[#d4af37] break-words">{t.valid}: {validTill} (30 Days)</b></div><div className="mt-1 break-words">{getNotInc(contract,lang)}</div></div>
-        <div className="font-black text-[18px] mt-3 break-words">{t.final}: Rs.{inr(displayTotal)} | Effective Rs.{effRate}/sqft</div>
+        <div className="font-black text-[18px] mt-3 break-words">{t.final}: Rs.{inr(displayTotal)} | Effective Rs.{effRateDisplay}/sqft</div>
         <div className="text-[11px] italic mt-1 break-words">{inWords(displayTotal)}</div>
         <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed break-words"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{getTerms(contract,lang).map((term,idx)=><div key={idx} className="break-words">{idx+1}. {term}</div>)}</div>
         <div className="grid grid-cols-2 gap-3 mt-4 min-w-0">
@@ -630,4 +632,14 @@ export default function Page(){
     {editPkg && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black capitalize break-words">Edit {editPkg} Package</h3><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" className="w-full border rounded-full px-3 py-3 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Abhi: Rs.{pkgRates[editPkg]} | Save ke baad Auto-Rebuild ho jayega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
   </div>
   );
-}
+}cony + Stair Only"),
+    mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75, "75% of Built-up"),
+    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom"),
+    mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
+    mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
+    mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
+    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
+    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
+  ];
+  return all.filter(m=> !(m.id==="lift" && m.qty===0));
+};
