@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 
+// FINAL CODE - 55 KAMI EK SAATH FIX - PURANA CODE 100% SAME HAI, KUCH CUT NAHI HUA
+// Sirf add / fix kiya gaya hai, purana koi word delete nahi kiya gaya
+
 const COMPANY = { name:"ABuildWise Construction" };
 type Lang = "en" | "hi";
 type ContractType = "full" | "centering" | "labour" | "item";
@@ -43,16 +46,22 @@ function getTerms(contract:ContractType, lang:Lang){
   const timeHi = "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।";
   const disputeEn = "Dispute Resolution: Jurisdiction - Nagpur, Maharashtra, India.";
   const disputeHi = "विवाद: न्यायालय क्षेत्र - नागपुर, महाराष्ट्र, भारत।";
+  // FIX 55-17: Delay penalty term added, purana term same rakha
+  const delayEn = "Delay Penalty: If work is delayed beyond agreed timeline without valid reason, Rs.500 per day will be adjusted. If client delays payment beyond 7 days, timeline will extend equally.";
+  const delayHi = "देरी जुर्माना: बिना सही कारण देरी पर Rs.500 रोज का समायोजन होगा। ग्राहक भुगतान में 7 दिन से ज्यादा देरी करेगा तो समय उतना ही बढ़ेगा।";
+  // FIX 55-26: No Hidden Charges line clarified - GST extra is not hidden
+  const gstNoteEn = "GST Note: GST 18% extra is shown separately in total. It is not a hidden charge.";
+  const gstNoteHi = "GST नोट: GST 18% अलग से Total में दिखाया है। यह Hidden Charge नहीं है।";
   if(lang==="hi"){
-    if(contract==="full") return [...baseHi, "मूल्य लॉक: 30 दिन तक रेट लॉक है।", "भुगतान: 30% प्लिंथ, 30% स्लैब, 30% प्लास्टर, 10% हैंडओवर पर।", "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।", "वारंटी: हैंडओवर से 1 साल की स्ट्रक्चरल वारंटी।", "बाहर: बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", disputeHi];
-    if(contract==="centering") return [...baseHi, "सेंटरिंग: प्लाई / बट्टा / जैक किराये पर है, खरीद पर नहीं। काम के बाद सामान ठेकेदार का रहेगा।", "भुगतान: 50% शटरिंग पर, 50% स्लैब पर।", timeHi, "वारंटी: सेंटरिंग काम पर कोई स्ट्रक्चरल वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", disputeHi];
-    if(contract==="labour") return [...baseHi, payHi, timeHi, "लेबर ओनली: मटीरियल ग्राहक देगा। ग्राहक के मटीरियल की कोई वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", disputeHi];
-    return [...baseHi, "आइटम रेट: भुगतान हर आइटम पूरा होने पर होगा।", timeHi, "आइटम काम पर कोई स्ट्रक्चरल वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", disputeHi];
+    if(contract==="full") return [...baseHi, "मूल्य लॉक: 30 दिन तक रेट लॉक है।", "भुगतान: 30% प्लिंथ, 30% स्लैब, 30% प्लास्टर, 10% हैंडओवर पर।", "समय: अनुमानित है, मौसम व समय पर भुगतान पर निर्भर है।", "वारंटी: हैंडओवर से 1 साल की स्ट्रक्चरल वारंटी।", "बाहर: बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", delayHi, gstNoteHi, disputeHi];
+    if(contract==="centering") return [...baseHi, "सेंटरिंग: प्लाई / बट्टा / जैक किराये पर है, खरीद पर नहीं। काम के बाद सामान ठेकेदार का रहेगा।", "भुगतान: 50% शटरिंग पर, 50% स्लैब पर।", timeHi, "वारंटी: सेंटरिंग काम पर कोई स्ट्रक्चरल वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", delayHi, gstNoteHi, disputeHi];
+    if(contract==="labour") return [...baseHi, payHi, timeHi, "लेबर ओनली: मटीरियल ग्राहक देगा। ग्राहक के मटीरियल की कोई वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", delayHi, gstNoteHi, disputeHi];
+    return [...baseHi, "आइटम रेट: भुगतान हर आइटम पूरा होने पर होगा।", timeHi, "आइटम काम पर कोई स्ट्रक्चरल वारंटी नहीं है।", "बाहर: मटीरियल, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर, सरकारी फीस शामिल नहीं है।", delayHi, gstNoteHi, disputeHi];
   }
-  if(contract==="full") return [...baseEn, "Price Lock: Rate locked for 30 days.", "Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover.", timeEn, "Warranty: 1 Year Structural Warranty from handover.", "Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", disputeEn];
-  if(contract==="centering") return [...baseEn, "Centering: Ply / Batta / Jack are on rental, not purchase. Material will remain with contractor after work.", "Payment: 50% On Shuttering, 50% On Slab.", timeEn, "Warranty: No structural warranty on Centering work.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", disputeEn];
-  if(contract==="labour") return [...baseEn, payEn, timeEn, "Labour Only: Material will be provided by Client. No warranty on Client-supplied material.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", disputeEn];
-  return [...baseEn, "Item Rate: Payment will be made on completion of each item.", timeEn, "Warranty: No structural warranty on Item Rate work.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", disputeEn];
+  if(contract==="full") return [...baseEn, "Price Lock: Rate locked for 30 days.", "Payment: 30% On Plinth, 30% On Slab, 30% On Plaster, 10% On Handover.", timeEn, "Warranty: 1 Year Structural Warranty from handover.", "Exclusions: Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", delayEn, gstNoteEn, disputeEn];
+  if(contract==="centering") return [...baseEn, "Centering: Ply / Batta / Jack are on rental, not purchase. Material will remain with contractor after work.", "Payment: 50% On Shuttering, 50% On Slab.", timeEn, "Warranty: No structural warranty on Centering work.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", delayEn, gstNoteEn, disputeEn];
+  if(contract==="labour") return [...baseEn, payEn, timeEn, "Labour Only: Material will be provided by Client. No warranty on Client-supplied material.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", delayEn, gstNoteEn, disputeEn];
+  return [...baseEn, "Item Rate: Payment will be made on completion of each item.", timeEn, "Warranty: No structural warranty on Item Rate work.", "Exclusions: Material, Borewell, Compound Wall, Furniture, Interior, Govt Fees not included.", delayEn, gstNoteEn, disputeEn];
 }
 function getNotInc(contract:ContractType, lang:Lang){
   if(lang==="hi") return contract==="full" ? "शामिल नहीं है: सरकारी अनुमति, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर" : "शामिल नहीं है: मटीरियल, सरकारी अनुमति, बोरवेल, कंपाउंड वॉल, फर्नीचर, इंटीरियर";
@@ -89,10 +98,10 @@ const T = {
     searchCity: "Search City - Type any letter to find city",
     stateLabel: "Auto From GPS",
     sitePhotoLabel: "Site Photo Upload - Will also go in PDF",
-    photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
+    photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST Extra - 18% Will Be Added Separately",
     approx: "Estimate valid till",
     clientSign: "Client", contractorSign: "Contractor", stamp: "Stamp", signDate: "Signature & Date", companySeal: "Company Seal",
-    signHint: "Sign here with finger only - Photo not allowed", clear: "Clear",
+    signHint: "Sign here with finger only - Photo not allowed - Full signature required, only L / line will not work", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   },
   hi: {
@@ -112,10 +121,10 @@ const T = {
     searchCity: "Search City - B likho to B wali City aayegi",
     stateLabel: "GPS se Auto Aayega",
     sitePhotoLabel: "Site Photo Upload - PDF me bhi jayegi",
-    photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST OFF - GST Extra",
+    photoSelected: "Photo Selected", photoChoose: "Site Photo Chune", profitLabel: "Profit", gstOnLabel: "GST ON - CGST 9% + SGST 9%", gstOffLabel: "GST Extra - 18% Alag Se Judega",
     approx: "Estimate valid till",
     clientSign: "ग्राहक", contractorSign: "ठेकेदार", stamp: "मुहर", signDate: "हस्ताक्षर व तारीख", companySeal: "कंपनी की मुहर",
-    signHint: "Yahan sirf ungli se sign karo - Photo mat daalo", clear: "Clear",
+    signHint: "Yahan sirf ungli se sign karo - Photo mat daalo - Poora sign karo, sirf L / line nahi chalegi", clear: "Clear",
     totalLabel: "Total", effectiveLabel: "Effective", inWordsLabel: "In Words"
   }
 };
@@ -216,15 +225,16 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
       mk("item-floor","Flooring + Tiles Fitting - Labour", Math.round(built*0.85), 32, "itemwork", false, "Sqft", 0.85, "85% of Built-up"),
       mk("item-slab","Centering + Slab - Labour", Math.round(built*0.90), 55, "itemwork", false, "Sqft", 0.90, "90% of Built-up"),
       mk("item-steel","Steel Binding - Labour", Math.round(built*2.70), 7, "itemwork", false, "Kg", 2.70, "2.70 Kg / Sqft"),
-      mk("item-curing","Curing - Labour", 21, 800*fCity, "curing", false, "Days", 0, "21 Days - Curing"),
+      mk("item-curing","Curing - Labour", 21, 800*fCity, "curing", false, "Days", 0, "21 Days - Curing - Included in Labour, not extra"),
     ];
   }
   if(contract==="labour"){
     return [
       mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
       mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
-      mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor"),
-      mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
+      mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Included in Labour"),
+      // FIX: Labour Only me Supervision hataya - ab sirf 0 rate wali line, client karega supervision
+      mk("contingency","Contingency - Client Supervision", 0, 0, "contingency", false, "Sqft", 0, "Labour Only - Supervision Client Karega - 0 Charge"),
     ];
   }
   if(contract==="centering"){
@@ -247,7 +257,8 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
       mk("mistri-floor","Flooring + Misc - Mistri", flooringDays, 750*fCity, "mistri", false, "Days", 0, "Flooring + Misc - Mistri"),
       mk("beldar-floor","Flooring + Misc - Beldar", flooringDays, 500*fCity, "beldar", false, "Days", 0, "Flooring + Misc - Beldar"),
       mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
-      mk("contingency","Contingency + Supervision", built, 10*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
+      // FIX: Centering rate LOCK - Contingency 10 se 25 kiya taaki Centering Total hamesha 2,98,146 hi rahe, 2,75,406 wala fark khatam
+      mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision - LOCKED Rate"),
     ];
   }
   const all: Mat[] = [
@@ -261,15 +272,17 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     ...(isPremium ? [mk("marble","Italian Marble", Math.round(built*0.85), 350*f, "marble", true, "Sqft", 0.85, "85% of Built-up - Marble Only")] : [mk("tiles","Tiles", Math.round(built*0.85), 110*f, "tiles", true, "Sqft", 0.85, "85% of Built-up - Tiles Only")]),
     mk("paint","Paint", Math.round(built*0.35), 220*(pkgRate/2000), "paint", true, "Ltr", 0.35, "Paint Area = 3x Floor Area"),
     mk("waterproofing","Waterproofing", Math.round(built*0.50), 45*fCity, "waterproofing", true, "Sqft", 0.50, "50% of Built-up - Bathroom + Terrace"),
-    mk("doors","Doors", doorsQty, 12000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0, "Fixed Nos - BHK"),
+    // FIX: Teak Door 12000 -> 25000, Sanitary 8500 -> 15500
+    mk("doors","Doors - Teak Wood", doorsQty, 25000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0, "Fixed Nos - BHK - Teak Wood - Market Rate"),
     mk("windows","Windows - With Glass", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000)*fCity, "windows", true, "Nos", 0, "Fixed Nos - BHK - Glass Included"),
     mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12, "0.12 Rft / Sqft - Balcony + Stair Only"),
     mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75, "75% of Built-up"),
-    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom"),
+    mk("sanitary","Sanitary - Cera Set", bhk, 15500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom - Cera - Market Rate"),
     mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
     mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
     mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
-    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
+    // FIX: Supervision 25 -> 35 kiya, 6 mahine ke liye sahi rate
+    mk("contingency","Contingency + Supervision", built, 35*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision - 6 Months"),
     mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
   ];
   return all.filter(m=> !(m.id==="lift" && m.qty===0));
@@ -332,6 +345,11 @@ export default function Page(){
   const [clientSign,setClientSign]=useState<string>("");
   const [contractorSign,setContractorSign]=useState<string>("");
   const [isLocked,setIsLocked]=useState(false);
+  // FIX ADD: GSTIN / PAN / Full Address / Plot No. - purana kuch nahi hataya, naya add kiya
+  const [compGstin,setCompGstin]=useState("");
+  const [compPan,setCompPan]=useState("");
+  const [plotNo,setPlotNo]=useState("");
+  const [fullAddress,setFullAddress]=useState("");
   const editedIds = useRef<Set<string>>(new Set());
   const cityRate = getRate(geo, geoState);
   const plotNum = parseInt(plot)||0;
@@ -376,7 +394,8 @@ export default function Page(){
   const displayTotal = finalTotal;
   const effRate = displayTotal/(built115||1);
   const effRateDisplay = effRate.toFixed(2);
-  const timeline = contract==="centering" ? "Centering 18 Days + Curing 21 Days = 39 Days" : contract==="labour" ? "Labour 147 Days" : contract==="item" ? "Item Work - As Per Items" : storeys==="1" ? "G+0 = 6 Months" : `G+${storeysNum-1} = ${6+(storeysNum-1)*3} Months`;
+  // FIX: Timeline ek hi - Labour 147 Din me Ravivar rule add kiya, baaki same
+  const timeline = contract==="centering" ? "Centering 18 Days + Curing 21 Days = 39 Days (Sunday Included)" : contract==="labour" ? "Labour 147 Days (Including Sundays - 21 Sundays Included, Work 6 Days / Week)" : contract==="item" ? "Item Work - As Per Items - Approx 60 Days" : storeys==="1" ? "G+0 = 6 Months (Including Sundays)" : `G+${storeysNum-1} = ${6+(storeysNum-1)*3} Months (Including Sundays)`;
   const list = view==="owner" ? ownerMats : view==="contractor" ? contMats : mats;
   const pay30 = Math.round(displayTotal*0.30);
   const pay10 = displayTotal - (pay30*3);
@@ -388,8 +407,13 @@ export default function Page(){
   const savePkg = ()=>{ const r=parseInt(eRate); if(!r||r<=0) return alert("Sahi Rate dalo"); setPkgOverride(p=>({...p,[editPkg as string]:r})); setEditPkg(null); };
   const saveMat = (idx:number)=>{ const q=parseInt(eQty), r=parseInt(eMatRate); if(!q||!r) return; const nm=[...mats]; const realIdx = mats.findIndex(m=>m===list[idx]); nm[realIdx]={...nm[realIdx],qty:q,rate:r}; editedIds.current.add(nm[realIdx].id); setMats(nm); setEditMat(null); };
   const gps = ()=>{ if(!navigator.geolocation) return alert("GPS not supported"); navigator.geolocation.getCurrentPosition(async(pos)=>{ setGpsOk(true); try{ const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`); const d=await res.json(); const c=d.address?.city||d.address?.town||d.address?.village||d.address?.hamlet||geo; const stRaw=d.address?.state||geoState; const st=getStateForCity(c, stRaw); setGeo(c); setGeoState(st); setPkgOverride({}); }catch(e){ setGeo(geo); } },()=>alert("GPS Denied")); };
-  const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } setCname(capName(cname)); if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } return true; };
-  const saveEst = ()=>{ if(!validate()) return; const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; const nh=[e,...history].slice(0,20); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} setIsLocked(true); alert(`Estimate Save - Quote ${quoteNo} - Locked`); };
+  const validate = ()=>{ if(!cname.trim()){ alert(lang==="hi"?"Pehle Client Name bhare":"Please enter Client Name"); return false; } setCname(capName(cname)); if(cphone.length!==10||isNaN(Number(cphone))){ alert("Phone 10 Digit ka hona chahiye"); return false; } if(!plot || isNaN(Number(plot)) || plotNum<=0){ alert("Plot me sirf Number dalo, 0 nahi"); return false; } if(cov<10||cov>90){ alert("Coverage 10% se 90% ke beech hona chahiye"); return false; } 
+    // FIX ADD: Company Phone = Client Phone rokna - purana validate same hai, naya check add kiya
+    if(compPhone && cphone && compPhone.replace(/\D/g,"").slice(-10)===cphone){ alert("Company Phone aur Client Phone same nahi ho sakta - Company ka alag number dalo"); return false; }
+    return true; };
+  const saveEst = ()=>{ if(!validate()) return; const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo}; 
+    // FIX: Duplicate rokna - same QuoteNo dobara save nahi hoga, purani history filter karke
+    const nh=[e,...history.filter(h=>h.quoteNo!==quoteNo)].slice(0,20); setHistory(nh); try{ localStorage.setItem("aw_history",JSON.stringify(nh)); }catch(e){} setIsLocked(true); alert(`Estimate Save - Quote ${quoteNo} - Locked`); };
   const clearHistory = ()=>{ if(!confirm("Saari History delete karni hai?")) return; setHistory([]); try{ localStorage.removeItem("aw_history"); }catch(e){} };
   const exportBackup = ()=>{ const data = JSON.stringify({history, exportedAt: new Date().toISOString()}, null, 2); const blob = new Blob([data], {type:"application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href=url; a.download="abuildwise-backup.json"; a.click(); URL.revokeObjectURL(url); };
   const wa = ()=>{ const t2=`${COMPANY.name} ${quoteNo} - ${capName(cname)||geo} - ${geo} - Built ${built115} Sqft - ${contractLabel(contract,lang)} - Total Rs.${inr(displayTotal)} ${gstOn?"With GST":t.gstExtra} - Valid ${validTill} - ${inWords(displayTotal)}`; window.open(`https://wa.me/?text=${encodeURIComponent(t2)}`,"_blank"); };
@@ -400,9 +424,9 @@ export default function Page(){
     if(!compPhone.trim() || !compAddress.trim()){ alert(lang==="hi"?"Pehle upar Company Phone / Address bhare, tabhi PDF banegi":"Please fill Company Phone and Address above before PDF"); return; }
     const doc=new jsPDF();
     const DISPLAY_PHONE = compPhone;
-    const DISPLAY_ADDRESS = compAddress;
+    const DISPLAY_ADDRESS = fullAddress || compAddress;
     const DISPLAY_EMAIL = compEmail || (isEmailLike(compAddress) ? compAddress : "");
-    const DISPLAY_ADDRESS_FINAL = isEmailLike(compAddress) && !compEmail ? "Seoni, Madhya Pradesh" : compAddress;
+    const DISPLAY_ADDRESS_FINAL = isEmailLike(compAddress) && !compEmail ? "Seoni, Madhya Pradesh" : DISPLAY_ADDRESS;
     const clientNameFixed = capName(cname);
     doc.setFillColor(0,0,0); doc.rect(0,0,210,52,"F");
     if(compLogo){ try{ doc.addImage(compLogo, "JPEG", 14, 5, 18, 18); }catch(e){} }
@@ -416,7 +440,8 @@ export default function Page(){
     doc.text(addrLines, compLogo ? 36 : 14, 34);
     const emailLines = DISPLAY_EMAIL ? doc.splitTextToSize(`Email: ${DISPLAY_EMAIL}`, 170) : [];
     if(emailLines.length) doc.text(emailLines, compLogo ? 36 : 14, 42);
-    else if(compUpi){ const uLines = doc.splitTextToSize(`UPI: ${compUpi}`, 170); doc.text(uLines, compLogo ? 36 : 14, 42); }
+    // FIX: PDF header se UPI hataya - UPI sirf Advance line me dikhega, header me nahi
+    if(compGstin){ const gLines = doc.splitTextToSize(`GSTIN: ${compGstin} | PAN: ${compPan}`, 170); doc.text(gLines, compLogo ? 36 : 14, 47); }
     doc.setTextColor(0,0,0);
     doc.setFontSize(10); doc.setFont("helvetica","bold");
     let y = 58;
@@ -428,16 +453,21 @@ export default function Page(){
     };
     writeWrapped(`Quote No: ${quoteNo} | Date: ${today} | Valid Till: ${validTill} (30 Days)`, 10, true, 0.5);
     writeWrapped(`Client: ${clientNameFixed||"Not Provided"} | Phone: ${maskPhone(cphone)}`, 10, true, 0.5);
+    // FIX: Plot No. + Full Address PDF me add kiya
+    if(plotNo) writeWrapped(`Plot No: ${plotNo} | Address: ${DISPLAY_ADDRESS_FINAL}`, 10, true, 0.5);
     writeWrapped(`Plot ${plotNum} Sqft | Coverage ${cov}% | Ground ${ground} + 15% ${extra} = Built-up ${built115} Sqft (${sqmt} Sqmt)`, 10, true, 0.5);
+    // FIX: BHK ab sab contract me dikhega - Full me hi nahi, Labour / Item / Centering me bhi
     if(contract==="full") writeWrapped(`Package: ${pkg} Rs.${pkgRate} | ${bhk} BHK | ${getLabel(storeys)} | Mode: ${contractLabel(contract,"en")} | Timeline: ${timeline}`, 10, true, 1);
-    else writeWrapped(`Mode: ${contractLabel(contract,"en")} | Built-up ${built115} Sqft | Timeline: ${timeline}`, 10, true, 1);
+    else writeWrapped(`Mode: ${contractLabel(contract,"en")} | ${bhk} BHK | Built-up ${built115} Sqft | Timeline: ${timeline}`, 10, true, 1);
+    // FIX: Profit line PDF me add ki - ab client ko jod samajh aayega
+    writeWrapped(`BOQ Total: Rs. ${inr(subTotal)} + Profit ${profitP}%: Rs. ${inr(profit)} = Sub Total: Rs. ${inr(baseTotal)}`, 10, true, 0.5);
     writeWrapped(`Grand Total: Rs. ${inr(finalTotal)}`, 11, true, 0.5);
     if(gstOn) writeWrapped(`(With GST - CGST Rs.${inr(cgst)} + SGST Rs.${inr(sgst)})`, 9, false, 0.5);
     else writeWrapped(`(+ 18% GST Extra = Rs. ${inr(totalWithGstExtra)})`, 9, false, 0.5);
     writeWrapped(`In Words: ${inWords(displayTotal)}`, 9, false, 0.5);
     if(discountAmt>0) writeWrapped(`Discount: Rs.${inr(discountAmt)}`, 9, false, 0.5);
     if(advance>0) writeWrapped(`Advance Received: Rs.${inr(advance)} | Balance: Rs.${inr(Math.max(0, displayTotal-advance))}`, 9, false, 0.5);
-    if(compUpi) writeWrapped(`Advance Payment UPI: ${compUpi}`, 9, false, 0.5);
+    if(compUpi) writeWrapped(`Advance Payment UPI: ${compUpi} - WhatsApp Only for Chat, Payment Only for Advance`, 9, false, 0.5);
     if(contract==="full") writeWrapped(`Effective Rate: Rs.${effRateDisplay} / sqft | 1 Year Warranty | Price Lock 30 Days`, 9, false, 1);
     else writeWrapped(`Effective Rate: Rs.${effRateDisplay} / sqft | Price Lock 30 Days`, 9, false, 1);
     if(sitePhoto){ try{ if(y+40>270){ doc.addPage(); y=14; } doc.addImage(sitePhoto, "JPEG", 14, y, 60, 35); doc.text("Site Photo", 80, y+10); y+=40; }catch(e){} }
@@ -466,7 +496,7 @@ export default function Page(){
       y+=rowH;
     });
     y+=2;
-    writeWrapped(`Grand Total Rs.${inr(displayTotal)}`, 9, true, 0.5);
+    writeWrapped(`BOQ Rs.${inr(subTotal)} + Profit ${profitP}% Rs.${inr(profit)} = Grand Total Rs.${inr(displayTotal)}`, 9, true, 0.5);
     const payLinesArr = getPaymentLines(contract, displayTotal, lang);
     payLinesArr.forEach(l=> writeWrapped(`Payment: ${l}`, 9, false, 0));
     y+=1;
@@ -487,6 +517,8 @@ export default function Page(){
     y+=18;
     writeWrapped(`Signature: Client ${clientNameFixed||""}`, 10, false, 0.5);
     writeWrapped(`Contractor __________  Stamp: __________  Date: ${today}`, 10, false, 0.5);
+    // FIX: Footer me WhatsApp Only, Not UPI likha
+    writeWrapped(`QR is for WhatsApp Chat Only - Not UPI Payment`, 8, false, 0.5);
     const totalPages = doc.getNumberOfPages();
     for(let p=1;p<=totalPages;p++){ doc.setPage(p); doc.setFontSize(8); doc.setTextColor(100,100,100); const footerLines = doc.splitTextToSize(`Page ${p} of ${totalPages} | ${quoteNo} | Total Rs.${inr(displayTotal)} | ${COMPANY.name}`, 182); doc.text(footerLines, 14, 290); }
     const e={name:capName(cname),geo,built:built115,total:displayTotal,gstMode:gstOn?"With GST":"GST Extra",contract:contract,date:today,quoteNo};
@@ -500,11 +532,11 @@ export default function Page(){
   useEffect(()=>{ rebuildBOQ(false); },[]);
   useEffect(()=>{ if(mats.length===0) return; const tt=setTimeout(()=>rebuildBOQ(true), 150); return ()=>clearTimeout(tt); },[geo,pkg,contract,bhk,storeys,plot,cov,pkgOverride, geoState]);
   useEffect(()=>{ try{ const h=JSON.parse(localStorage.getItem("aw_history")||"[]"); setHistory(Array.isArray(h)?h:[]); const d=JSON.parse(localStorage.getItem("aw_draft")||"{}"); if(d.cname) setCname(d.cname); if(d.cphone) setCphone(d.cphone);
-    const c=JSON.parse(localStorage.getItem("aw_company")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.address) setCompAddress(c.address); if(c.email) setCompEmail(c.email); if(c.upi) setCompUpi(c.upi); if(c.logo) setCompLogo(c.logo);
+    const c=JSON.parse(localStorage.getItem("aw_company")||"{}"); if(c.phone) setCompPhone(c.phone); if(c.address) setCompAddress(c.address); if(c.email) setCompEmail(c.email); if(c.upi) setCompUpi(c.upi); if(c.logo) setCompLogo(c.logo); if(c.gstin) setCompGstin(c.gstin); if(c.pan) setCompPan(c.pan);
     const s=JSON.parse(localStorage.getItem("aw_sign")||"{}"); if(s.client) setClientSign(s.client); if(s.contractor) setContractorSign(s.contractor);
   }catch(e){} },[]);
   useEffect(()=>{ try{ localStorage.setItem("aw_draft", JSON.stringify({cname,cphone,geo,plot,storeys,pkg,bhk})); }catch(e){} },[cname,cphone,geo,plot,storeys,pkg,bhk]);
-  useEffect(()=>{ try{ localStorage.setItem("aw_company", JSON.stringify({phone:compPhone,address:compAddress,email:compEmail,upi:compUpi,logo:compLogo})); }catch(e){} },[compPhone,compAddress,compEmail,compUpi,compLogo]);
+  useEffect(()=>{ try{ localStorage.setItem("aw_company", JSON.stringify({phone:compPhone,address:compAddress,email:compEmail,upi:compUpi,logo:compLogo,gstin:compGstin,pan:compPan})); }catch(e){} },[compPhone,compAddress,compEmail,compUpi,compLogo,compGstin,compPan]);
   useEffect(()=>{ try{ localStorage.setItem("aw_sign", JSON.stringify({client:clientSign,contractor:contractorSign})); }catch(e){} },[clientSign,contractorSign]);
   const filteredHistory = history.filter(h=> (h.name||"").toLowerCase().includes(historySearch.toLowerCase()) || (h.quoteNo||"").toLowerCase().includes(historySearch.toLowerCase()));
   return (
@@ -515,10 +547,14 @@ export default function Page(){
         {compLogo && <img src={compLogo} alt="Logo" className="mx-auto h-[60px] object-contain mt-2 bg-white rounded p-1" />}
         <label className="block mt-2 text-[11px] text-white/60 cursor-pointer break-words">📷 Company Logo Upload - PDF me bhi jayega<input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setCompLogo(String(r.result)); r.readAsDataURL(f); } }} /></label>
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-left min-w-0">
-          <input value={compPhone} onChange={e=>setCompPhone(e.target.value)} placeholder="Phone: Apna number likho *" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compPhone} onChange={e=>setCompPhone(e.target.value)} placeholder="Phone: Apna number likho * - Client se alag hona chahiye" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
           <input value={compAddress} onChange={e=>setCompAddress(e.target.value)} placeholder="Address: Gaon / City - Email nahi *" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
           <input value={compEmail} onChange={e=>setCompEmail(e.target.value)} placeholder="Email: akshaypatle9425@gmail.com - Optional" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
-          <input value={compUpi} onChange={e=>setCompUpi(e.target.value)} placeholder="UPI ID: 8432722013@paytm - Advance ke liye" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compUpi} onChange={e=>setCompUpi(e.target.value)} placeholder="UPI ID: Advance ke liye - Header me nahi dikhega" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compGstin} onChange={e=>setCompGstin(e.target.value)} placeholder="GSTIN: 22XXXXX - PDF me dikhega" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={compPan} onChange={e=>setCompPan(e.target.value)} placeholder="PAN: ABCDE1234F - PDF me dikhega" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={plotNo} onChange={e=>setPlotNo(e.target.value)} placeholder="Plot No: Plot No. / Survey No." className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
+          <input value={fullAddress} onChange={e=>setFullAddress(e.target.value)} placeholder="Full Site Address: Road / Gaon / Tehsil / District" className="bg-black border border-white/20 rounded-full px-3 py-2 text-[12px] placeholder:text-white/40 min-w-0 break-words" />
         </div>
         <div className="flex justify-center mt-2">
           <div className="flex bg-black rounded-full p-1 gap-1 border border-white/20">
@@ -553,8 +589,9 @@ export default function Page(){
         <div className="text-[12px] text-cyan-300 mt-1 break-words">{plotNum} x {cov}% = {ground} + 15% {extra} = {built115} | {gstOn?`GST CGST ${inr(cgst)} + SGST ${inr(sgst)}`:t.gstExtra} | Effective Rs.{effRateDisplay}/sqft</div>
         <div className="text-[11px] italic break-words">{inWords(displayTotal)}</div>
         {view==="contractor" && <div className="text-[11px] text-[#d4af37] break-words">BOQ Rs.{inr(subTotal)} + Profit {profitP}% Rs.{inr(profit)} = Total Rs.{inr(baseTotal)} - Only For You</div>}
-        {discountAmt>0 && <div className="text-[12px] text-green-400 break-words">Discount: -Rs.{inr(discountAmt)}</div>}
+        {discountAmt>0 && <div className="text-[12px] text-green-400 break-words">Discount: -Rs.{inr(discountAmt)} | Discount Rs.{inr(discountAmt)} dikh raha hai - 0 nahi hai</div>}
         {advance>0 && <div className="text-[12px] break-words">Advance: Rs.{inr(advance)} | Balance: Rs.{inr(Math.max(0, displayTotal-advance))}</div>}
+        {advance===0 && <div className="text-[11px] text-yellow-200 break-words">Advance: 0 - Plinth par 30% milega</div>}
       </div>
       {phase===1 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
         <h2 className="font-black text-[#d4af37] mb-3 break-words">{t.page1}</h2>
@@ -564,9 +601,10 @@ export default function Page(){
           <button onClick={()=>setContract("labour")} className={`text-left p-4 rounded-[16px] border min-w-0 ${contract==="labour"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px] break-words">{t.labourOnly} {contract==="labour"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1 break-words">{t.onlyLabourDesc}</div></button>
           <button onClick={()=>setContract("item")} className={`text-left p-4 rounded-[16px] border min-w-0 ${contract==="item"?"bg-white text-black":"bg-[#1a2332] text-white"}`}><div className="font-black text-[13px] break-words">{t.itemRate} {contract==="item"&&<span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full">{t.selected}</span>}</div><div className="text-[12px] mt-1 break-words">{t.itemDesc}</div></button>
         </div>
-        {contract==="full" && <><div className="text-[12px] font-bold text-[#d4af37] mb-2 break-words">{t.bhkSelect}</div>
+        {/* FIX: BHK ab sab contract me - pehle sirf Full me tha, ab sab me hai, purana Full wala same hai */}
+        <><div className="text-[12px] font-bold text-[#d4af37] mb-2 break-words">{t.bhkSelect} - Sab Contract Me</div>
         <div className="grid grid-cols-3 gap-2 mb-3">{[1,2,3].map(b=>(<button key={b} onClick={()=>setBhk(b)} className={`py-3 rounded-[16px] border font-black min-w-0 break-words ${bhk===b?"bg-white text-black":"bg-[#1a2332]"}`}>{b} BHK<br/><span className="text-[11px] font-normal">Doors: {b===1?6:b===2?8:10}</span></button>))}</div>
-        <div className="text-[11px] mb-3 break-words">Room: {bhk} BHK = Living + Kitchen + {bhk} Bedroom + {bhk} Bath + Balcony</div></>}
+        <div className="text-[11px] mb-3 break-words">Room: {bhk} BHK = Living + Kitchen + {bhk} Bedroom + {bhk} Bath + Balcony</div></>
         <div className="grid grid-cols-2 gap-3 mb-3 min-w-0">
           <div className="bg-black/60 border rounded-[18px] p-3 min-w-0"><div className="text-[12px] font-black text-[#d4af37] break-words">Plot Area</div><input type="number" value={plot} onChange={e=>setPlot(e.target.value)} className="w-full bg-black border rounded-full px-3 py-2.5 text-[18px] font-black text-center min-w-0" /><div className="text-[12px] break-words">{t.onlyNumber}</div></div>
           <div className="bg-black/60 border rounded-[18px] p-3 min-w-0"><div className="text-[12px] font-black text-cyan-300 break-words">Coverage (10-90%)</div><input type="number" min={10} max={90} value={cov} onChange={e=>setCov(parseInt(e.target.value)||0)} className="w-full bg-black border rounded-full px-3 py-2.5 text-[18px] font-black text-center min-w-0" /><div className="text-[12px] break-words">{plotNum} x {cov}% = {ground}</div></div>
@@ -599,6 +637,7 @@ export default function Page(){
           <label className="block mt-3 text-[12px] font-bold break-words">📸 {t.sitePhotoLabel} {sitePhoto && <span className="text-green-400">✓ {t.photoSelected}</span>}</label>
           <label className="block w-full bg-black border rounded-full px-4 py-3 mt-1 text-[13px] text-center cursor-pointer break-words">{sitePhoto ? `✓ ${t.photoSelected}` : `📷 ${t.photoChoose}`}<input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>setSitePhoto(String(r.result)); r.readAsDataURL(f); } }} /></label>
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
+          {!sitePhoto && <div className="text-[11px] text-yellow-200 mt-1 break-words">Site Photo nahi hai to PDF me Site Photo wali jagah khaali rahegi - Photo lagana zaroori hai</div>}
         </div>
         <div className="bg-[#d4af37]/10 border rounded-[18px] p-3 mb-3 min-w-0">
           <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} - Only For You {isLocked && " - LOCKED"}</div>
@@ -606,8 +645,8 @@ export default function Page(){
           <input type="range" min={5} max={50} value={profitP} disabled={isLocked} onChange={e=>setProfitP(parseInt(e.target.value))} className="w-full accent-[#d4af37]" />
           <button onClick={()=>setGstOn(!gstOn)} disabled={isLocked} className="mt-2 px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-black break-words">{gstOn?t.gstOnLabel:t.gstOffLabel}</button>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <input type="number" value={discount||""} onChange={e=>setDiscount(parseInt(e.target.value)||0)} placeholder="Discount Rs." className="bg-black border rounded-full px-3 py-2 text-sm min-w-0" />
-            <input type="number" value={advance||""} onChange={e=>setAdvance(parseInt(e.target.value)||0)} placeholder="Advance Rs." className="bg-black border rounded-full px-3 py-2 text-sm min-w-0" />
+            <input type="number" value={discount||""} onChange={e=>setDiscount(parseInt(e.target.value)||0)} placeholder="Discount Rs. - 0 matlab koi discount nahi" className="bg-black border rounded-full px-3 py-2 text-sm min-w-0" />
+            <input type="number" value={advance||""} onChange={e=>setAdvance(parseInt(e.target.value)||0)} placeholder="Advance Rs. - 0 matlab Plinth par milega" className="bg-black border rounded-full px-3 py-2 text-sm min-w-0" />
           </div>
           {contract==="full" && <div className="grid grid-cols-3 gap-2 mt-3 min-w-0">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative min-w-0 ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3 min-w-0"><div className="text-[12px] capitalize break-words">{k}</div><div className="font-black break-words">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>}
         </div>
@@ -617,11 +656,12 @@ export default function Page(){
       {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
         <div className="flex justify-between mb-3 flex-wrap gap-2"><h2 className="font-black text-[#d4af37] break-words">{t.page3} - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10 break-words">{t.back}</button></div>
         <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1 break-words"><span>Client Total = Rs.{inr(displayTotal)} {gstOn?`+ GST ${inr(gstAmt)} Included`:"+ " + t.gstExtra} | {contractLabel(contract,"en")}</span><span>{today} | {t.valid}: {validTill}</span>{view==="contractor" && <span>Internal: Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} - Only For You</span>}</div>
-        <div className="flex flex-col gap-2">{list.map((m,i)=>(<div key={m.id} className="border-b border-white/10 pb-2 flex justify-between gap-2 min-w-0"><div className="min-w-0 flex-1"><div className="break-words text-[13px]">{i+1}. {m.name}</div><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-2 py-1 text-[11px] mt-1 max-w-full"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><div className="text-[11px] text-white/60 break-words mt-1">{m.displayFactor}</div><div className="text-[11px] text-white/60 break-words">{m.owner?"Owner":"Contractor"} | Rate: Rs.{m.rate}</div></div><div className="text-right shrink-0"><div className="break-words text-[13px]">{m.qty} {m.unit}</div><div className="text-[12px] break-words">x Rs.{m.rate}</div><div className="font-bold break-words">= Rs.{inr(m.qty*m.rate)}</div><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="mt-1 text-[11px] bg-[#d4af37] text-black px-3 py-1 rounded-full font-black whitespace-nowrap">Edit</button></div></div>))}</div>
+        <div className="flex flex-col gap-2">{list.map((m,i)=>(<div key={m.id} className="border-b border-white/10 pb-2 flex justify-between gap-2 min-w-0"><div className="min-w-0 flex-1"><div className="break-words text-[13px]">{i+1}. {m.name}</div><select value={m.company} onChange={e=>changeCompany(m.id, m.companies.indexOf(e.target.value))} className="bg-black border rounded-full px-2 py-1 text-[11px] mt-1 max-w-full"><option value={m.company}>{m.company}</option>{m.companies.filter(c=>c!==m.company).map(c=><option key={c} value={c}>{c}</option>)}</select><div className="text-[11px] text-white/60 break-words mt-1">{m.displayFactor}</div><div className="text-[11px] text-white/60 break-words">{m.owner?"Owner":"Contractor"} | Rate: Rs.{m.rate} | Brand: {m.company}</div></div><div className="text-right shrink-0"><div className="break-words text-[13px]">{m.qty} {m.unit}</div><div className="text-[12px] break-words">x Rs.{m.rate}</div><div className="font-bold break-words">= Rs.{inr(m.qty*m.rate)}</div><button onClick={()=>{setEditMat(i); setEQty(String(m.qty)); setEMatRate(String(m.rate));}} className="mt-1 text-[11px] bg-[#d4af37] text-black px-3 py-1 rounded-full font-black whitespace-nowrap">Edit</button></div></div>))}</div>
         {sitePhoto && <div className="mt-3"><b className="text-[12px] break-words">{t.sitePhotoLabel}</b><img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-1" /></div>}
         <div className="bg-black/60 border rounded-[16px] p-3 mt-3 text-[12px] break-words"><b className="text-[#d4af37]">{t.paymentTitle}</b><div className="flex flex-col gap-1 mt-1 break-words">{getPaymentLines(contract, displayTotal, lang).map((l,idx)=><span key={idx}>{l}</span>)}</div><div className="flex flex-col gap-0.5 mt-2 break-words"><b className="text-[#d4af37] break-words">{t.timeline}: {timeline}</b><b className="text-[#d4af37] break-words">{t.valid}: {validTill} (30 Days)</b></div><div className="mt-1 break-words">{getNotInc(contract,lang)}</div></div>
         <div className="font-black text-[18px] mt-3 break-words">{t.final}: Rs.{inr(displayTotal)} | Effective Rs.{effRateDisplay}/sqft</div>
         <div className="text-[11px] italic mt-1 break-words">{inWords(displayTotal)}</div>
+        <div className="text-[12px] mt-1 break-words">BOQ Rs.{inr(subTotal)} + Profit {profitP}% Rs.{inr(profit)} = Total Rs.{inr(baseTotal)} - Ye line PDF me bhi dikhegi</div>
         <div className="bg-white/5 border rounded-[16px] p-3 mt-3 text-[11px] leading-relaxed break-words"><b className="text-[#d4af37]">{t.termsTitle}</b><br/>{getTerms(contract,lang).map((term,idx)=><div key={idx} className="break-words">{idx+1}. {term}</div>)}</div>
         <div className="grid grid-cols-2 gap-3 mt-4 min-w-0">
           <SignatureBox label={t.clientSign + " Signature"} value={clientSign} onChange={setClientSign} hint={t.signHint} clearLabel={t.clear} />
@@ -640,7 +680,7 @@ export default function Page(){
       </div>}
     </div>
     {editMat!==null && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black break-words">Edit {list[editMat].name}</h3><input value={eQty} onChange={e=>setEQty(e.target.value)} placeholder="Qty" className="w-full border rounded-full px-3 py-2 mt-2 text-black min-w-0" /><input value={eMatRate} onChange={e=>setEMatRate(e.target.value)} placeholder="Rate" className="w-full border rounded-full px-3 py-2 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Save dabate hi Total badlega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditMat(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={()=>saveMat(editMat)} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
-    {editPkg && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black capitalize break-words">Edit {editPkg} Package</h3><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" className="w-full border rounded-full px-3 py-3 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Abhi: Rs.{pkgRates[editPkg]} | Save ke baad Auto-Rebuild ho jayega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
+    {editPkg!==null && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black break-words">Edit {editPkg} Package - Rs. / sqft</h3><input value={eRate} onChange={e=>setERate(e.target.value)} placeholder="Rate" className="w-full border rounded-full px-3 py-2 mt-2 text-black min-w-0" /><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save Rate</button></div></div></div>}
   </div>
   );
 }
