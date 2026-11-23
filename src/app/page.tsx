@@ -263,7 +263,18 @@ const BASE_MATS = (built:number, cityRate:number, bhk:number, storeysNum:number,
     mk("waterproofing","Waterproofing", Math.round(built*0.50), 45*fCity, "waterproofing", true, "Sqft", 0.50, "50% of Built-up - Bathroom + Terrace"),
     mk("doors","Doors", doorsQty, 12000*(pkgRate/2000)*fCity, "doors", true, "Nos", 0, "Fixed Nos - BHK"),
     mk("windows","Windows - With Glass", bhk===1?6:bhk===2?8:10, 8500*(pkgRate/2000)*fCity, "windows", true, "Nos", 0, "Fixed Nos - BHK - Glass Included"),
-    mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12, "0.12 Rft / Sqft - Balfunction SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
+    mk("railing","Railing SS304", Math.round(built*0.12), 450*fCity, "railing", true, "Rft", 0.12, "0.12 Rft / Sqft - Balcony + Stair Only"),
+    mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75, "75% of Built-up"),
+    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom"),
+    mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
+    mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
+    mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
+    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
+    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
+  ];
+  return all.filter(m=> !(m.id==="lift" && m.qty===0));
+};
+function SignatureBox({ label, value, onChange, hint, clearLabel }: any) {
   const canvasRef = useRef<any>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const getPos = (e:any, canvas:any) => { const rect = canvas.getBoundingClientRect(); const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY; return { x: (cx - rect.left) * (canvas.width / rect.width), y: (cy - rect.top) * (canvas.height / rect.height) }; };
@@ -632,14 +643,4 @@ export default function Page(){
     {editPkg && <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[999]"><div className="bg-white text-black rounded-2xl p-4 w-full max-w-[400px] min-w-0"><h3 className="font-black capitalize break-words">Edit {editPkg} Package</h3><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" className="w-full border rounded-full px-3 py-3 mt-2 text-black min-w-0" /><div className="text-[12px] mt-1 break-words">Abhi: Rs.{pkgRates[editPkg]} | Save ke baad Auto-Rebuild ho jayega</div><div className="flex gap-2 mt-3"><button onClick={()=>setEditPkg(null)} className="flex-1 bg-gray-200 rounded-full py-3 break-words">Cancel</button><button onClick={savePkg} className="flex-1 bg-black text-white rounded-full py-3 font-bold break-words">Save</button></div></div></div>}
   </div>
   );
-}cony + Stair Only"),
-    mk("pop","POP / Ceiling", Math.round(built*0.75), 55*fCity, "pop", true, "Sqft", 0.75, "75% of Built-up"),
-    mk("sanitary","Sanitary", bhk, 8500*(pkgRate/2000)*fCity, "sanitary", true, "Set", 0, "1 Set / Bathroom"),
-    mk("mistri","Mistri", labourDaysFull, 750*fCity, "mistri", false, "Days", 0.10, "Labour Days - Mistri"),
-    mk("beldar","Beldar", labourDaysFull, 500*fCity, "beldar", false, "Days", 0.10, "Labour Days - Beldar"),
-    mk("curing","Curing", curingDays, 800*fCity, "curing", false, "Days", 0, "14 + 7 / Floor - Curing Labour"),
-    mk("contingency","Contingency + Supervision", built, 25*fCity, "contingency", false, "Sqft", 1, "100% of Built-up - Supervision"),
-    mk("lift","Lift", storeysNum>1 ? 1 : 0, 850000*fCity, "lift", false, "Nos", 0, "1 No if G+1+"),
-  ];
-  return all.filter(m=> !(m.id==="lift" && m.qty===0));
-};
+}
