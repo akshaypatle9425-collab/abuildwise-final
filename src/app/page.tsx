@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 
-// FINAL CODE - 2 PAGE - PURANA CODE 100% SAME HAI, KUCH CUT NAHI HUA
-// Sirf add / fix kiya gaya hai
-// Page 1 = Contract + Plot + BHK + Location + Package + Currency + Manual
-// Page 2 = Final - BOQ + Total + Sign + PDF
+// FINAL CODE - 3 PAGE - NO CUT - NO ERROR
+// Page 1 = Contract + Plot + BHK + Client
+// Page 2 = Location + Package + Currency + Manual
+// Page 3 = Final - BOQ + Total + Sign + PDF
 
 const COMPANY = { name:"ABuildWise Construction" };
 type Lang = "en" | "hi";
@@ -84,8 +84,8 @@ const T = {
   en: {
     appTitle: "Estimate", final: "Final", download: "Download PDF", whatsapp: "WhatsApp", save: "Save Quote", newQuote: "New Quote",
     clientName: "Client Name * Required", clientPhone: "Client Phone * 10 Digit",
-    page1: "Page 1 - Contract + Plot + BHK + Location + Package", page2: "Page 2 - Final",
-    nextLoc: "Next - Final →", nextFinal: "Next - Final →", back: "Back",
+    page1: "Page 1 - Contract + Plot + BHK", page2: "Page 3 - Final",
+    nextLoc: "Next - Location →", nextFinal: "Next - Final →", back: "Back",
     paymentTitle: "Payment", timeline: "Timeline", valid: "Valid",
     termsTitle: "TERMS & CONDITIONS:",
     scan: "Scan to Chat on WhatsApp", history: "History", noHistory: "No history yet",
@@ -107,8 +107,8 @@ const T = {
   hi: {
     appTitle: "अनुमान", final: "फाइनल", download: "पीडीएफ डाउनलोड करें", whatsapp: "व्हाट्सऐप", save: "सेव करें", newQuote: "नया कोट",
     clientName: "ग्राहक का नाम * जरूरी है", clientPhone: "ग्राहक का फोन * 10 अंक",
-    page1: "पेज 1 - ठेका + प्लॉट + BHK + लोकेशन + पैकेज", page2: "पेज 2 - फाइनल",
-    nextLoc: "आगे - फाइनल →", nextFinal: "आगे - फाइनल →", back: "पीछे",
+    page1: "पेज 1 - ठेका + प्लॉट + BHK", page2: "पेज 3 - फाइनल",
+    nextLoc: "आगे - लोकेशन →", nextFinal: "आगे - फाइनल →", back: "पीछे",
     paymentTitle: "भुगतान", timeline: "समय", valid: "मान्य",
     termsTitle: "नियम व शर्तें:",
     scan: "व्हाट्सऐप पर बात करने के लिए स्कैन करें", history: "हिस्ट्री", noHistory: "अभी कोई हिस्ट्री नहीं है",
@@ -145,7 +145,6 @@ function get7935AutoRate(city: string, stateName: string): number {
   if (METRO_7935.includes(c)) return Math.round(base * 1.25);
   return Math.round(base * 0.85);
 }
-// === FIX - SAGAR 1650 ADD - NO CUT ===
 const CITY_RATES: Record<string, number> = { mumbai: 3300, thane: 3100, pune: 2800, nagpur: 2000, nashik: 2400, aurangabad: 2300, "delhi ncr": 3200, bangalore: 3000, hyderabad: 2900, indore: 2200, bhopal: 2100, pohegaon: 1350, kopargaon: 1380, shirdi: 1420, ahmednagar: 2100, balaghat: 1520, seoni: 1510, mandla: 1500,
   khamariya: 1402, khamaria: 1402, jabalpur: 2050, bhusawal: 2000, khandwa: 2050, burhanpur: 2020, jalgaon: 2100, dewas: 2150, waraseoni: 1525, katangi: 1515,
   sagar: 1650, damoh: 1600, chhatarpur: 1620, tikamgarh: 1580, narsinghpur: 1600 };
@@ -348,7 +347,6 @@ export default function Page(){
   const [compPan,setCompPan]=useState("");
   const [plotNo,setPlotNo]=useState("");
   const [fullAddress,setFullAddress]=useState("");
-  // === ADD ONLY - B + Currency + Manual - NO CUT ===
   const [backendData,setBackendData]=useState<any>(null);
   const [currencyMode,setCurrencyMode]=useState<"INR"|"USD">("INR");
   const [usdInr,setUsdInr]=useState(88.5);
@@ -359,11 +357,7 @@ export default function Page(){
   const builtRaw = ground*(parseInt(storeys)||1);
   const extra = Math.round(builtRaw*0.15);
   const built115 = builtRaw + extra;
-  const pkgRates = {
-    basic: pkgOverride.basic ?? Math.round(cityRate * 0.82),
-    standard: pkgOverride.standard ?? cityRate,
-    premium: pkgOverride.premium ?? Math.round(cityRate * 1.38),
-  };
+  const pkgRates = { basic: pkgOverride.basic ?? Math.round(cityRate * 0.82), standard: pkgOverride.standard ?? cityRate, premium: pkgOverride.premium ?? Math.round(cityRate * 1.38) };
   const pkgRate = pkgRates[pkg as keyof typeof pkgRates];
   const isPremium = pkg==="premium";
   const sqmt = (built115*0.092903).toFixed(1);
@@ -399,8 +393,6 @@ export default function Page(){
   const effRateDisplay = effRate.toFixed(2);
   const timeline = contract==="centering" ? "Centering 18 Days + Curing 21 Days = 39 Days (Sunday Included)" : contract==="labour" ? "Labour 147 Days (Including Sundays - 21 Sundays Included, Work 6 Days / Week)" : contract==="item" ? "Item Work - As Per Items - Approx 60 Days" : storeys==="1" ? "G+0 = 6 Months (Including Sundays)" : `G+${storeysNum-1} = ${6+(storeysNum-1)*3} Months (Including Sundays)`;
   const list = view==="owner" ? ownerMats : view==="contractor" ? contMats : mats;
-  const pay30 = Math.round(displayTotal*0.30);
-  const pay10 = displayTotal - (pay30*3);
   const changeCompany = (matId:string, idx:number)=>{
     if(isLocked) return alert("Quote Locked hai - Naya Quote banao");
     const nm = mats.map(m=>{ if(m.id!==matId) return m; const newRate = Math.round(m.baseRate * m.mult[idx]); editedIds.current.add(m.id); return {...m, company: m.companies[idx], rate: newRate}; });
@@ -525,7 +517,6 @@ export default function Page(){
   const newQuote = ()=>{ const q=makeQuote(); setQuoteNo(q); setCname(""); setCphone(""); setPlot("2000"); setCov(64); setStoreys("1"); setBhk(2); setPhase(1); setSitePhoto(""); setClientSign(""); setContractorSign(""); setIsLocked(false); setDiscount(0); setAdvance(0); editedIds.current.clear(); try{ localStorage.setItem("aw_quote",q); }catch(e){} alert(`Naya Quote: ${q}`); };
   useEffect(()=>{ setToday(new Date().toLocaleDateString("en-IN")); setValidTill(new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-IN")); setQuoteNo(makeQuote()); },[]);
   useEffect(()=>{ rebuildBOQ(false); },[]);
-  // === ADD ONLY - Backend se Live Rate - NO CUT ===
   useEffect(()=>{
     const load = async()=>{
       try{
@@ -549,7 +540,6 @@ export default function Page(){
   return (
   <div className="min-h-screen bg-[#02020a] text-white p-2 pb-32">
     <div className="max-w-[720px] mx-auto min-w-0">
-      {/* === TOP CLEAN - Sirf Main Wala - NO CUT === */}
       <div className="bg-[#0f141f] border border-[#d4af37]/20 rounded-2xl px-4 py-3 mb-2 text-center min-w-0">
         <b className="break-words text-[16px] leading-snug block">{COMPANY.name}</b>
         {compLogo && <img src={compLogo} alt="Logo" className="mx-auto h-[60px] object-contain mt-2 bg-white rounded p-1" />}
@@ -585,8 +575,7 @@ export default function Page(){
           <button onClick={()=>setView("contractor")} className={`px-2 py-1 rounded-full text-[11px] font-bold ${view==="contractor"?"bg-[#d4af37] text-black":"text-white/70"}`}>Contractor: {contMats.length}</button>
         </div>
       </div>
-      {/* === 2 PAGE ONLY - NO CUT === */}
-      <div className="grid grid-cols-2 gap-1 mb-2">{[1,2].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold break-words ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract + Location":"2. Final"}</button>)}</div>
+      <div className="grid grid-cols-3 gap-1 mb-2">{[1,2,3].map(n=><button key={n} onClick={()=>setPhase(n)} className={`text-center text-[11px] py-1.5 rounded-full font-bold break-words ${phase===n?"bg-[#d4af37] text-black":"bg-white/10"}`}>{n===1?"1. Contract":n===2?"2. Location":"3. Final"}</button>)}</div>
       <div className="bg-black/60 border border-cyan-400/20 rounded-2xl px-3 py-2 mb-3 text-center min-w-0">
         <div className="text-[12px] text-[#d4af37] font-bold break-words">Built-up {built115} Sqft ({sqmt} Sqmt) | {today} | {geo} - {geoState}</div>
         <div className="font-black text-[18px] break-words">Total {displaySymbol}{inr(displayTotal)} | {contractLabel(contract,"en")}</div>
@@ -630,8 +619,12 @@ export default function Page(){
         <input value={cname} onChange={e=>setCname(e.target.value)} onBlur={()=>setCname(capName(cname))} placeholder={t.clientName} style={{textTransform:"capitalize"}} className="w-full bg-black/50 border rounded-full px-4 py-3 mb-2 min-w-0 capitalize" />
         <input value={cphone} onChange={e=>setCphone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder={t.clientPhone} maxLength={10} className="w-full bg-black/50 border rounded-full px-4 py-3 mb-1 min-w-0" />
         {cphone.length>=5 && <div className="text-[11px] text-white/60 mb-3 break-words">Client ko dikhega: {maskPhone(cphone)}</div>}
+        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3 break-words">⚠️ {t.approx} {validTill}.</div>
+        <button onClick={()=>{if(validate()) setPhase(2)}} className="w-full bg-[#d4af37] text-black font-black py-4 rounded-full break-words">{t.nextLoc}</button>
+      </div>}
 
-        {/* === PAGE 1 ME HI - Location + Package + Currency + Manual - 2 PAGE WALA === */}
+      {phase===2 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
+        <h2 className="font-black text-[#d4af37] mb-3 break-words">Page 2 - Location + Package + Currency</h2>
         <div className="bg-white/5 border rounded-[16px] p-3 mb-3 min-w-0">
           <div className="flex justify-between flex-wrap gap-2"><b className="text-[13px] text-cyan-300 break-words">Location + GPS + Site Photo</b><button onClick={gps} className="text-[12px] px-3 py-1 rounded-full bg-cyan-400 text-black font-black break-words">{gpsOk?`${geo} - GPS Verified`:"Use GPS"}</button></div>
           <div className="relative min-w-0">
@@ -651,8 +644,6 @@ export default function Page(){
           {sitePhoto && <img src={sitePhoto} alt="Site" className="w-full h-[160px] object-cover rounded-xl mt-2" />}
           {!sitePhoto && <div className="text-[11px] text-yellow-200 mt-1 break-words">Site Photo nahi hai to PDF me Site Photo wali jagah khaali rahegi - Photo lagana zaroori hai</div>}
         </div>
-
-        {/* === Currency Box + Manual Rate Box - NO CUT === */}
         <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-[16px] p-3 mb-3">
           <b className="text-[13px] text-[#d4af37]">💱 Currency - {currencyMode} | 1 USD = ₹{usdInr} {backendData?.rateSource?.currency?.live ? "🟢 LIVE" : "🟡 Fallback 88.5"}</b>
           <div className="flex gap-2 mt-2">
@@ -675,7 +666,6 @@ export default function Page(){
             alert("Rate Save ho gaya - " + geo);
           }} className="w-full mt-2 bg-[#d4af37] text-black font-bold py-2.5 rounded-full text-[13px]">Save Manual Rate - Backend me Save hoga</button>
         </div>
-
         <div className="bg-[#d4af37]/10 border rounded-[18px] p-3 mb-3 min-w-0">
           <div className="text-[12px] font-black text-[#d4af37] mb-2 break-words">{t.profitLabel} {profitP}% = Rs.{inr(profit)} | GST {gstOn?"ON":"OFF"} - Only For You {isLocked && " - LOCKED"}</div>
           <div className="text-[11px] text-white/60 mb-1 break-words">Profit Slider - Only For You, Client ko nahi dikhega</div>
@@ -688,12 +678,11 @@ export default function Page(){
           {contract==="full" && <div className="grid grid-cols-3 gap-2 mt-3 min-w-0">{(["basic","standard","premium"] as const).map(k=>(<div key={k} className={`rounded-[16px] border p-3 relative min-w-0 ${pkg===k?"bg-white text-black":"bg-black/40"}`}><button onClick={()=>{setEditPkg(k); setERate(String(pkgRates[k]));}} className="absolute top-1 right-1 text-[11px] bg-[#d4af37] text-black px-2 py-0.5 rounded-full font-black">Edit</button><button onClick={()=>setPkg(k)} className="w-full text-left mt-3 min-w-0"><div className="text-[12px] capitalize break-words">{k}</div><div className="font-black break-words">Rs.{pkgRates[k]} / sqft</div></button></div>))}</div>}
           {editPkg && <div className="mt-2 flex gap-2"><input value={eRate} onChange={e=>setERate(e.target.value)} type="number" placeholder="Naya Rate" className="flex-1 bg-black border rounded-full px-3 py-2 text-sm" /><button onClick={savePkg} className="px-4 py-2 rounded-full bg-[#d4af37] text-black font-bold text-[12px]">Save</button><button onClick={()=>setEditPkg(null)} className="px-3 py-2 rounded-full bg-white/10 text-[12px]">Cancel</button></div>}
         </div>
-        <div className="bg-yellow-400/10 border rounded-[16px] p-3 text-[12px] text-yellow-200 mb-3 break-words">⚠️ {t.approx} {validTill}.</div>
-        <button onClick={()=>{if(validate()) setPhase(2)}} className="w-full bg-[#d4af37] text-black font-black py-4 rounded-full break-words">{t.nextLoc}</button>
+        <div className="flex gap-2 mt-3"><button onClick={()=>setPhase(1)} className="flex-1 bg-white/10 rounded-full py-3.5 break-words">{t.back}</button><button onClick={()=>{if(validate()) setPhase(3)}} className="flex-[2] bg-[#d4af37] text-black font-black py-3.5 rounded-full break-words">{t.nextFinal}</button></div>
       </div>}
 
-      {phase===2 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
-        <div className="flex justify-between mb-3 flex-wrap gap-2"><h2 className="font-black text-[#d4af37] break-words">{t.page2} - {quoteNo}</h2><button onClick={()=>setPhase(1)} className="text-[12px] px-3 py-1 rounded-full bg-white/10 break-words">{t.back}</button></div>
+      {phase===3 && <div className="bg-[#0f141f] border rounded-[24px] p-4 min-w-0">
+        <div className="flex justify-between mb-3 flex-wrap gap-2"><h2 className="font-black text-[#d4af37] break-words">{t.page2} - {quoteNo}</h2><button onClick={()=>setPhase(2)} className="text-[12px] px-3 py-1 rounded-full bg-white/10 break-words">{t.back}</button></div>
         <div className="bg-black/60 border rounded-[16px] p-3 mb-3 text-[12px] flex flex-col gap-1 break-words"><span>Client Total = {displaySymbol}{inr(displayTotal)} {gstOn?`+ GST ${inr(gstAmt)} Included`:"+ " + t.gstExtra} | {contractLabel(contract,"en")}</span><span>{today} | {t.valid}: {validTill}</span>{view==="contractor" && <span>Internal: Owner Rs.{inr(ownerCost)} + Contractor Rs.{inr(contCost)} + Profit Rs.{inr(profit)} = Rs.{inr(baseTotal)} - Only For You</span>}</div>
         <div className="flex flex-col gap-2">{list.map((m,i)=>(
           <div key={m.id} className="border-b border-white/10 pb-2 flex justify-between gap-2 min-w-0">
@@ -710,7 +699,6 @@ export default function Page(){
             </div>
           </div>
         ))}</div>
-
         <div className="bg-black/60 border rounded-[16px] p-3 my-3 text-[12px] flex flex-col gap-1 break-words">
           <span>BOQ Rs.{inr(subTotal)} + Profit {profitP}% Rs.{inr(profit)} = Sub Total Rs.{inr(baseTotal)}</span>
           {gstOn && <span>CGST Rs.{inr(cgst)} + SGST Rs.{inr(sgst)} = GST Rs.{inr(gstAmt)}</span>}
@@ -719,25 +707,21 @@ export default function Page(){
           <span>{inWords(finalTotal)}</span>
           <span>Effective: {displaySymbol}{effRateDisplay} / sqft | {t.timeline}: {timeline}</span>
         </div>
-
         <div className="grid grid-cols-2 gap-3 mb-3">
           <SignatureBox label={`${t.clientSign} - ${capName(cname)||"Client"}`} value={clientSign} onChange={setClientSign} hint={t.signHint} clearLabel={t.clear} />
           <SignatureBox label={`${t.contractorSign}`} value={contractorSign} onChange={setContractorSign} hint={t.signHint} clearLabel={t.clear} />
         </div>
-
         <div className="grid grid-cols-2 gap-2 mb-3">
           <button onClick={saveEst} className="bg-[#d4af37] text-black font-black py-3.5 rounded-full break-words">{t.save}</button>
           <button onClick={wa} className="bg-green-500 text-white font-black py-3.5 rounded-full break-words">{t.whatsapp}</button>
         </div>
         <button onClick={pdf} className="w-full bg-white text-black font-black py-4 rounded-full break-words mb-3">{t.download}</button>
-
         <div className="bg-black/40 border rounded-[16px] p-3 mb-3">
           <b className="text-[13px] text-[#d4af37]">{t.termsTitle}</b>
           <div className="text-[11px] text-white/70 mt-1 flex flex-col gap-1">{getTerms(contract,lang).map((tm,idx)=><span key={idx}>{idx+1}. {tm}</span>)}</div>
           <div className="text-[11px] mt-2">{getNotInc(contract,lang)}</div>
           <div className="text-[11px] mt-1 font-bold">{t.paymentTitle}: {getPaymentLines(contract, finalTotal, lang).join(" | ")}</div>
         </div>
-
         <div className="bg-black/40 border rounded-[16px] p-3">
           <div className="flex justify-between items-center mb-2"><b className="text-[13px]">{t.history}</b><button onClick={clearHistory} className="text-[11px] bg-red-500/20 text-red-300 px-2 py-1 rounded-full">Clear</button></div>
           <input value={historySearch} onChange={e=>setHistorySearch(e.target.value)} placeholder="Search History - Name / Quote" className="w-full bg-black border rounded-full px-3 py-2 text-[12px] mb-2" />
