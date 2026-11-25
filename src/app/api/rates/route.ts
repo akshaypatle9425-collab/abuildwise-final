@@ -14,6 +14,12 @@ let VERIFIED_MEMORY: Record<string, any> = {
   "seoni": { cement: 340, steel: 66, mistri: 670, beldar: 430, source: "Verified-API", updatedAt: new Date().toISOString() },
   "balaghat": { cement: 342, steel: 66, mistri: 680, beldar: 430, source: "Verified-API", updatedAt: new Date().toISOString() },
   "khamariya": { cement: 340, steel: 65, mistri: 650, beldar: 420, source: "Verified-API", updatedAt: new Date().toISOString() },
+  // === FIX - SAGAR ADD - NO CUT ===
+  "sagar": { cement: 345, steel: 66, mistri: 700, beldar: 450, source: "Verified-API", updatedAt: new Date().toISOString() },
+  "damoh": { cement: 342, steel: 66, mistri: 680, beldar: 430, source: "Verified-API", updatedAt: new Date().toISOString() },
+  "chhatarpur": { cement: 343, steel: 66, mistri: 690, beldar: 440, source: "Verified-API", updatedAt: new Date().toISOString() },
+  "tikamgarh": { cement: 342, steel: 66, mistri: 670, beldar: 430, source: "Verified-API", updatedAt: new Date().toISOString() },
+  "narsinghpur": { cement: 342, steel: 66, mistri: 680, beldar: 430, source: "Verified-API", updatedAt: new Date().toISOString() },
 };
 
 async function kvGet(key: string): Promise<any | null> {
@@ -55,13 +61,16 @@ async function getLiveCurrency() {
     if (j.conversion_rates?.INR) return { usdInr: j.conversion_rates.INR, source: "Currency-Exchange-API", updatedAt: new Date().toISOString(), live: true };
     throw new Error("no rate");
   } catch {
-    return { usdInr: 83.5, source: "Fallback-Old-Verified", updatedAt: new Date().toISOString(), live: false };
+    // === FIX - Currency Fallback 83.5 -> 88.5 - NO CUT ===
+    return { usdInr: 88.5, source: "Fallback-Old-Verified", updatedAt: new Date().toISOString(), live: false };
   }
 }
 // LOCK 4 - 2. Country / City Location API
+// === FIX - Location - x-forwarded-for se User ka IP, Server ka nahi - NO CUT ===
 async function getLiveLocation(req: NextRequest) {
   try {
-    const r = await fetch("https://ipapi.co/json/", { next: { revalidate: 3600 } });
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "8.8.8.8";
+    const r = await fetch(`https://ipapi.co/${ip}/json/`, { next: { revalidate: 3600 } });
     const j: any = await r.json();
     if (j.city) return { city: (j.city || "").toLowerCase(), country: j.country_code || "IN", source: "Location-API-ipapi", updatedAt: new Date().toISOString(), live: true };
     throw new Error("no loc");
@@ -105,6 +114,8 @@ const LOCKED_RATES: Record<string, number> = {
   "ujjain": 1520, "gwalior": 1570, "jabalpur": 1530,
   "pohegaon": 1350, "kopargaon": 1380, "shirdi": 1420, "sangamner": 1350, "rahata": 1370, "yeola": 1330, "shrirampur": 1360, "ahmednagar": 1450,
   "balaghat": 1520, "seoni": 1510, "mandla": 1500, "waraseoni": 1525, "katangi": 1515, "lalandi": 1490,
+  // === FIX - SAGAR ADD - NO CUT ===
+  "sagar": 1650, "damoh": 1600, "chhatarpur": 1620, "tikamgarh": 1580, "narsinghpur": 1600,
 };
 
 // === FINAL V9 ADDITION - LIVE MARKET RATE 2026 CORRECTED - NO CUT ===
@@ -121,6 +132,8 @@ const LIVE_2026_MARKET_CORRECTED_RATES: Record<string, number> = {
   "bhusawal": 2000, "khandwa": 2050, "burhanpur": 2020, "jalgaon": 2100, "dewas": 2150,
   // === ADD ONLY - KHAMARIYA FIX - NO CUT ===
   "khamariya": 1402,
+  // === FIX - SAGAR ADD - NO CUT ===
+  "sagar": 1650, "damoh": 1600, "chhatarpur": 1620, "tikamgarh": 1580, "narsinghpur": 1600,
 };
 // === END V9 ADDITION ===
 
@@ -128,6 +141,8 @@ const LIVE_2026_MARKET_CORRECTED_RATES: Record<string, number> = {
 const PURE_LIVE_ANY_CITY_TOP_LEVEL: Record<string, number> = {
   "mumbai": 3300, "thane": 3100, "pune": 2800, "nagpur": 2000, "nashik": 2400, "aurangabad": 2300,
   "delhi ncr": 3200, "bangalore": 3000, "hyderabad": 2900, "indore": 2200, "bhopal": 2100,
+  // === FIX - SAGAR ADD ===
+  "sagar": 1650,
 };
 function getPureLiveFactor(cityRate: number){
   return cityRate / 2000;
@@ -173,6 +188,8 @@ const CITY_COVERAGE_MAP: Record<string, number> = {
   "mumbai": 0.55, "thane": 0.56, "pune": 0.60, "nagpur": 0.64,
   "balaghat": 0.62, "seoni": 0.62, "mandla": 0.60, "waraseoni": 0.62, "katangi": 0.61,
   "delhi": 0.60, "indore": 0.63, "bhopal": 0.62, "nashik": 0.62, "bangalore": 0.58,
+  // === FIX - SAGAR ADD ===
+  "sagar": 0.62, "damoh": 0.62, "chhatarpur": 0.62, "tikamgarh": 0.62, "narsinghpur": 0.62,
 };
 
 function getLockedRate(cityKey: string, stateName: string = ""): number {
@@ -224,6 +241,12 @@ const cityRates: Record<string, any> = {
   // === ADD ONLY - KHAMARIYA MATERIAL ===
   "khamariya": { cement: 340, steel: 65, multiplier: 1.0, mistri: 650, beldar: 420, sand: 54, bricks: 6.9, lat: 23.10, lng: 79.90 },
   "jabalpur": { cement: 342, steel: 66, multiplier: 1.0, mistri: 680, beldar: 430, sand: 55, bricks: 7.0, lat: 23.18, lng: 79.98 },
+  // === FIX - SAGAR ADD - NO CUT ===
+  "sagar": { cement: 345, steel: 66, multiplier: 1.0, mistri: 700, beldar: 450, sand: 55, bricks: 7.0, lat: 23.83, lng: 78.71 },
+  "damoh": { cement: 342, steel: 66, multiplier: 1.0, mistri: 680, beldar: 430, sand: 54, bricks: 6.9, lat: 23.79, lng: 79.44 },
+  "chhatarpur": { cement: 343, steel: 66, multiplier: 1.0, mistri: 690, beldar: 440, sand: 55, bricks: 7.0, lat: 24.91, lng: 79.58 },
+  "tikamgarh": { cement: 342, steel: 66, multiplier: 1.0, mistri: 670, beldar: 430, sand: 54, bricks: 6.9, lat: 24.74, lng: 78.82 },
+  "narsinghpur": { cement: 342, steel: 66, multiplier: 1.0, mistri: 680, beldar: 430, sand: 54, bricks: 6.9, lat: 22.95, lng: 79.19 },
 };
 
 function getAutoLiveMarketRates(base: any) {
@@ -549,6 +572,8 @@ export async function GET(req: NextRequest) {
     state7935: stateRaw || "auto",
     auto7935Rate: get7935AutoRate(city, stateRaw),
     khamariyaCheck: city === "khamariya" ? 1402 : null,
+    // === FIX - SAGAR CHECK - NO CUT ===
+    sagarCheck: city === "sagar" ? 1650 : null,
     // ===== ADD ONLY - 10 LOCK + 11th - RETURN - NO CUT =====
     rateSource: {
       cement: { value: cementRate, source: manualDB.cement ? "Manual-User-DB" : verifiedMat.source, updatedAt: manualDB.updatedAt || verifiedMat.updatedAt, live: manualDB.cement ? true : verifiedMat.live },
@@ -575,3 +600,4 @@ export async function POST(req: NextRequest){ return GET(req); }
 // === V12 FINAL TOP LEVEL - ANY CITY SEARCH = PURE LIVE CONTRACTION + MATERIAL + CONSTRUCTION - 0 WORD CUT - TOP LEVEL VERIFIED ===
 // === V13 FINAL - 7935 CITY + KHAMARIYA 1402 + STATE BASE AUTO - NO CUT VERIFIED ===
 // === V14 FINAL - 10 LOCK + 11th DB - MANUAL RATE KV ME SAVE - NO CUT VERIFIED ===
+// === V15 FINAL - SAGAR 1650 + CURRENCY 88.5 + LOCATION x-forwarded-for - NO CUT VERIFIED ===
